@@ -4,7 +4,14 @@ import Dashboard from "@/components/Dashboard";
 import { useProjects } from "@/context/ProjectsContext";
 
 const Index = () => {
-  const { projects, invoices, loading, createInvoice, createThirdPartyInvoice } = useProjects();
+  const { 
+    projects, 
+    invoices, 
+    loading, 
+    createInvoice, 
+    createThirdPartyInvoice,
+    updateInvoiceStatus
+  } = useProjects();
 
   return (
     <Layout>
@@ -18,6 +25,7 @@ const Index = () => {
           invoices={invoices}
           onCreateInvoice={createInvoice}
           onCreateThirdPartyInvoice={createThirdPartyInvoice}
+          onUpdateInvoiceStatus={updateInvoiceStatus}
         />
       )}
     </Layout>

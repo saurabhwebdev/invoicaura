@@ -15,6 +15,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { AlertCircle, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useProjects } from '@/context/ProjectsContext';
+import { projectService, invoiceService } from '@/lib/dbService';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -195,14 +196,66 @@ const Settings = () => {
     });
   };
 
-  const handleDeleteDummyData = () => {
-    // This would ideally clear the sample data from Firebase
-    // For now, we'll just show a success message
-    localStorage.removeItem('userSettings');
-    toast({
-      title: "Dummy Data Deleted",
-      description: "All sample data has been removed. Please reload the page."
-    });
+  const handleDeleteDummyData = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to delete data",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Show loading message
+      toast({
+        title: "Processing",
+        description: "Deleting sample data, please wait..."
+      });
+
+      // Delete all invoices first
+      const deletePromises: Promise<boolean>[] = [];
+      
+      // Delete all invoices first to avoid foreign key constraints
+      for (const invoice of invoices) {
+        deletePromises.push(invoiceService.deleteInvoice(currentUser, invoice.id));
+      }
+      
+      // Wait for all invoice deletions to complete
+      await Promise.all(deletePromises);
+      
+      // Reset the deletePromises array
+      deletePromises.length = 0;
+      
+      // Now delete all projects
+      for (const project of projects) {
+        deletePromises.push(projectService.deleteProject(currentUser, project.id));
+      }
+      
+      // Wait for all project deletions to complete
+      await Promise.all(deletePromises);
+      
+      // Finally remove user settings
+      localStorage.removeItem('userSettings');
+      
+      // Success message
+      toast({
+        title: "Success",
+        description: "All sample data has been removed. The page will reload now."
+      });
+      
+      // Reload the page after a short delay to refresh data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error: any) {
+      console.error('Error deleting dummy data:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete sample data",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
