@@ -618,17 +618,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </aside>
         <main className="flex-1 md:ml-64">
           <div className="flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 sticky top-0 z-10">
-            <div className="flex items-center md:hidden">
-              <SidebarTrigger>
-                <Button variant="outline" size="icon">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SidebarTrigger>
-              <h2 className="ml-3 text-lg font-semibold tracking-tight aura-text-gradient">
-                InvoiceAura
-              </h2>
-            </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center">
+              <div className="md:hidden flex items-center">
+                <SidebarTrigger>
+                  <Button variant="outline" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SidebarTrigger>
+                <h2 className="ml-3 text-lg font-semibold tracking-tight aura-text-gradient">
+                  InvoiceAura
+                </h2>
+              </div>
               <div className="hidden md:block">
                 <InvoiceForm 
                   projects={projects} 
@@ -644,7 +644,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               >
                 <PlusCircle className="h-5 w-5" />
               </Button>
-              
+            </div>
+            
+            <div className="flex items-center">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Avatar className="h-9 w-9 cursor-pointer">
