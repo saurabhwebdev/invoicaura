@@ -5,11 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, HardDrive, Wrench } from "lucide-react";
 import { cn } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface InvoiceFormProps {
-  projects: Array<{ id: string; name: string; budget: number; invoiced: number; }>;
+  projects: Array<{ 
+    id: string; 
+    name: string; 
+    budget: number; 
+    invoiced: number; 
+    hardwareBudget?: number;
+    serviceBudget?: number;
+    hardwareInvoiced?: number;
+    serviceInvoiced?: number;
+  }>;
   onSubmit: (invoice: any) => void;
   className?: string;
   selectedProjectId?: string;
@@ -30,7 +40,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     amount: '',
     invoiceNumber: '',
     description: '',
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    type: 'service' as 'hardware' | 'service' | undefined
   });
   
   // Update formData if selectedProjectId changes
@@ -42,7 +53,27 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
   
   const selectedProject = projects.find(p => p.id === formData.projectId);
   const remainingBudget = selectedProject ? selectedProject.budget - selectedProject.invoiced : 0;
-  const isOverBudget = selectedProject && Number(formData.amount) > remainingBudget;
+  
+  // Check if project has hardware/service budget split
+  const hasBudgetSplit = selectedProject && 
+    selectedProject.hardwareBudget !== undefined && 
+    selectedProject.serviceBudget !== undefined;
+  
+  // Calculate remaining hardware and service budgets
+  const remainingHardwareBudget = hasBudgetSplit ? 
+    (selectedProject?.hardwareBudget || 0) - (selectedProject?.hardwareInvoiced || 0) : 0;
+  
+  const remainingServiceBudget = hasBudgetSplit ? 
+    (selectedProject?.serviceBudget || 0) - (selectedProject?.serviceInvoiced || 0) : 0;
+  
+  // Check if over budget based on invoice type
+  const isOverBudget = selectedProject && (
+    !hasBudgetSplit 
+      ? Number(formData.amount) > remainingBudget
+      : formData.type === 'hardware'
+        ? Number(formData.amount) > remainingHardwareBudget
+        : Number(formData.amount) > remainingServiceBudget
+  );
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -50,6 +81,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
   
   const handleSelectProject = (value: string) => {
     setFormData({ ...formData, projectId: value });
+  };
+
+  const handleSelectType = (value: string) => {
+    setFormData({ ...formData, type: value as 'hardware' | 'service' });
   };
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -64,10 +99,21 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       return;
     }
     
+    if (hasBudgetSplit && !formData.type) {
+      toast({
+        title: "Missing Type",
+        description: "Please select an invoice type (Hardware or Service)",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (isOverBudget) {
       toast({
         title: "Budget Warning",
-        description: "This invoice exceeds the remaining project budget",
+        description: hasBudgetSplit 
+          ? `This invoice exceeds the remaining ${formData.type} budget`
+          : "This invoice exceeds the remaining project budget",
         variant: "destructive"
       });
       return;
@@ -92,7 +138,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       amount: '',
       invoiceNumber: '',
       description: '',
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      type: 'service'
     });
     
     setOpen(false);
@@ -129,7 +176,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-              {selectedProject && (
+              {selectedProject && !hasBudgetSplit && (
                 <p className="text-xs text-muted-foreground mt-1">
                   Remaining budget: ${remainingBudget.toLocaleString()}
                 </p>
@@ -137,7 +184,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
             </div>
           )}
           
-          {hideProjectSelection && selectedProject && (
+          {hideProjectSelection && selectedProject && !hasBudgetSplit && (
             <div className="space-y-2">
               <Label>Project</Label>
               <div className="flex justify-between border rounded-md p-2">
@@ -145,6 +192,48 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 <span className="text-muted-foreground text-sm">
                   Remaining: ${remainingBudget.toLocaleString()}
                 </span>
+              </div>
+            </div>
+          )}
+
+          {/* Show project with budget split info */}
+          {selectedProject && hasBudgetSplit && (
+            <div className="space-y-2">
+              <Label>{hideProjectSelection ? 'Project' : 'Budget Information'}</Label>
+              <div className="border rounded-md p-3 space-y-2">
+                {hideProjectSelection && (
+                  <div className="font-medium pb-2">{selectedProject.name}</div>
+                )}
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Hardware Budget:</span>
+                    <div className="font-medium">${selectedProject.hardwareBudget?.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Remaining:</span>
+                    <div className={cn(
+                      "font-medium",
+                      remainingHardwareBudget < 0.2 * (selectedProject.hardwareBudget || 0) ? "text-aura-red" : ""
+                    )}>
+                      ${remainingHardwareBudget.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Service Budget:</span>
+                    <div className="font-medium">${selectedProject.serviceBudget?.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Remaining:</span>
+                    <div className={cn(
+                      "font-medium",
+                      remainingServiceBudget < 0.2 * (selectedProject.serviceBudget || 0) ? "text-aura-red" : ""
+                    )}>
+                      ${remainingServiceBudget.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -159,6 +248,28 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
               placeholder="INV-001"
             />
           </div>
+
+          {selectedProject && hasBudgetSplit && (
+            <div className="space-y-2">
+              <Label>Invoice Type</Label>
+              <RadioGroup value={formData.type} onValueChange={handleSelectType} className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="hardware" id="hardware" />
+                  <Label htmlFor="hardware" className="cursor-pointer flex items-center gap-1.5">
+                    <HardDrive className="h-4 w-4 text-aura-blue" />
+                    Hardware
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="service" id="service" />
+                  <Label htmlFor="service" className="cursor-pointer flex items-center gap-1.5">
+                    <Wrench className="h-4 w-4 text-aura-purple" />
+                    Service
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
           
           <div className="space-y-2">
             <Label htmlFor="amount">Amount ($)</Label>
@@ -173,7 +284,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
             />
             {isOverBudget && (
               <p className="text-xs text-destructive">
-                This amount exceeds the remaining budget.
+                {hasBudgetSplit 
+                  ? `This amount exceeds the remaining ${formData.type} budget.`
+                  : "This amount exceeds the remaining budget."}
               </p>
             )}
           </div>
@@ -200,11 +313,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
             />
           </div>
           
-          <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" className="ml-2">
+          <DialogFooter className="pt-4">
+            <Button type="submit" className="w-full sm:w-auto">
               Create Invoice
             </Button>
           </DialogFooter>

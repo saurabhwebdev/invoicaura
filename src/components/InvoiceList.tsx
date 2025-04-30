@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
+import { HardDrive, Wrench } from 'lucide-react';
 
 export interface Invoice {
   id: string;
@@ -15,6 +16,7 @@ export interface Invoice {
   date: string;
   description: string;
   status: 'paid' | 'pending' | 'overdue';
+  type?: 'hardware' | 'service';
   thirdParty?: {
     company: string;
     invoiceNumber: string;
@@ -49,6 +51,17 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
         return 'bg-aura-gray/20 text-aura-gray border-aura-gray/50';
     }
   };
+
+  const getTypeColor = (type?: string) => {
+    switch(type) {
+      case 'hardware':
+        return 'bg-aura-blue/20 text-aura-blue border-aura-blue/50';
+      case 'service':
+        return 'bg-aura-purple/20 text-aura-purple border-aura-purple/50';
+      default:
+        return '';
+    }
+  };
   
   return (
     <Card className={cn("animate-fade-in", className)}>
@@ -68,6 +81,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                   <TableHead>Date</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -101,6 +115,21 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                       >
                         {invoice.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {invoice.type && (
+                        <Badge 
+                          variant="outline"
+                          className={cn("capitalize flex items-center gap-1", getTypeColor(invoice.type))}
+                        >
+                          {invoice.type === 'hardware' ? (
+                            <HardDrive className="h-3 w-3" />
+                          ) : (
+                            <Wrench className="h-3 w-3" />
+                          )}
+                          {invoice.type}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button 

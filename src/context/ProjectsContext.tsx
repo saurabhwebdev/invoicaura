@@ -46,7 +46,13 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
     startDate: project.startDate,
     endDate: project.endDate,
     status: project.status === 'cancelled' ? 'pending' : project.status, // Map cancelled to pending for component
-    invoiceCount: project.invoiceCount
+    invoiceCount: project.invoiceCount,
+    ...(project.hardwareBudget !== undefined && {
+      hardwareBudget: project.hardwareBudget,
+      serviceBudget: project.serviceBudget,
+      hardwareInvoiced: project.hardwareInvoiced || 0,
+      serviceInvoiced: project.serviceInvoiced || 0
+    })
   });
 
   // Helper function to map service Invoice to component Invoice
@@ -59,7 +65,8 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
     date: invoice.date,
     description: invoice.description,
     status: invoice.status === 'cancelled' ? 'pending' : invoice.status, // Map cancelled to pending for component
-    thirdParty: invoice.thirdParty
+    thirdParty: invoice.thirdParty,
+    type: invoice.type
   });
 
   // Load data on component mount
@@ -178,7 +185,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (!currentUser) return;
 
     try {
-      const { clientInvoiceId, projectId, company, invoiceNumber, amount, date, description } = thirdPartyData;
+      const { clientInvoiceId, projectId, company, invoiceNumber, amount, date, description, type } = thirdPartyData;
 
       // Find the project
       const project = projects.find(p => p.id === projectId);
@@ -204,15 +211,16 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
       }
 
-      // Create the third-party invoice
-      const thirdPartyInvoice = {
+      // Create the invoice data
+      const invoiceData = {
         projectId,
         projectName: project.name,
-        invoiceNumber: `TP-${invoiceNumber}`,
+        invoiceNumber,
         amount,
         date,
         description,
-        status: 'pending' as const,
+        status: 'pending' as 'paid' | 'pending' | 'overdue' | 'cancelled',
+        type,
         thirdParty: {
           company,
           invoiceNumber,
@@ -220,16 +228,16 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
       };
 
-      // Save to Firebase
+      // Create the invoice in Firebase
       const createdInvoice = await invoiceService.createInvoice(
         currentUser,
-        thirdPartyInvoice
+        invoiceData
       );
 
       // Update local state
       setInvoices(prevInvoices => [...prevInvoices, mapToComponentInvoice(createdInvoice)]);
 
-      // Update the project
+      // Update local project state
       const updatedProject = await projectService.getProject(currentUser, project.id);
       setProjects(prevProjects =>
         prevProjects.map(p => (p.id === updatedProject.id ? mapToComponentProject(updatedProject) : p))
@@ -291,19 +299,18 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
-  // Context value
-  const value = {
-    projects,
-    invoices,
-    loading,
-    createProject,
-    createInvoice,
-    createThirdPartyInvoice,
-    updateInvoiceStatus
-  };
-
   return (
-    <ProjectsContext.Provider value={value}>
+    <ProjectsContext.Provider
+      value={{
+        projects,
+        invoices,
+        loading,
+        createProject,
+        createInvoice,
+        createThirdPartyInvoice,
+        updateInvoiceStatus
+      }}
+    >
       {children}
     </ProjectsContext.Provider>
   );

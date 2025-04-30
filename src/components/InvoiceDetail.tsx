@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CalendarIcon, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { CalendarIcon, CheckCircle, Clock, AlertCircle, HardDrive, Wrench } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { Invoice } from './InvoiceList';
 import { useSettings } from '@/context/SettingsContext';
@@ -48,6 +48,28 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         return 'bg-aura-gray/20 text-aura-gray border-aura-gray/50';
     }
   };
+
+  const getTypeColor = (type?: string) => {
+    switch(type) {
+      case 'hardware':
+        return 'bg-aura-blue/20 text-aura-blue border-aura-blue/50';
+      case 'service':
+        return 'bg-aura-purple/20 text-aura-purple border-aura-purple/50';
+      default:
+        return '';
+    }
+  };
+
+  const getTypeIcon = (type?: string) => {
+    switch(type) {
+      case 'hardware':
+        return <HardDrive className="h-5 w-5 text-aura-blue" />;
+      case 'service':
+        return <Wrench className="h-5 w-5 text-aura-purple" />;
+      default:
+        return null;
+    }
+  };
   
   const handleStatusChange = (status: 'paid' | 'pending' | 'overdue') => {
     if (onStatusChange) {
@@ -59,15 +81,32 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Invoice {invoice.invoiceNumber}</span>
-            <Badge 
-              variant="outline"
-              className={cn("capitalize", getStatusColor(invoice.status))}
-            >
-              {invoice.status}
-            </Badge>
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center">
+              <span>Invoice {invoice.invoiceNumber}</span>
+            </DialogTitle>
+            <div className="flex gap-2">
+              {invoice.type && (
+                <Badge 
+                  variant="outline"
+                  className={cn("capitalize flex items-center gap-1", getTypeColor(invoice.type))}
+                >
+                  {invoice.type === 'hardware' ? (
+                    <HardDrive className="h-3 w-3" />
+                  ) : (
+                    <Wrench className="h-3 w-3" />
+                  )}
+                  {invoice.type}
+                </Badge>
+              )}
+              <Badge 
+                variant="outline"
+                className={cn("capitalize", getStatusColor(invoice.status))}
+              >
+                {invoice.status}
+              </Badge>
+            </div>
+          </div>
           <DialogDescription>
             {invoice.thirdParty ? (
               <span>Third-party invoice from {invoice.thirdParty.company}</span>
@@ -103,6 +142,15 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                   <span className="font-medium capitalize">{invoice.status}</span>
                 </div>
               </div>
+              {invoice.type && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Type</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {getTypeIcon(invoice.type)}
+                    <span className="font-medium capitalize">{invoice.type}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           

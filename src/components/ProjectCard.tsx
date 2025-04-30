@@ -17,6 +17,10 @@ export interface Project {
   endDate: string;
   status: 'active' | 'completed' | 'pending';
   invoiceCount: number;
+  hardwareBudget?: number;
+  serviceBudget?: number;
+  hardwareInvoiced?: number;
+  serviceInvoiced?: number;
 }
 
 interface ProjectCardProps {
@@ -30,6 +34,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, className }
   
   const progress = project.budget ? Math.min(100, Math.round((project.invoiced / project.budget) * 100)) : 0;
   const remaining = project.budget - project.invoiced;
+  
+  // Calculate hardware and service budgets if they exist
+  const hasHardwareService = project.hardwareBudget !== undefined && project.serviceBudget !== undefined;
+  const hardwareRemaining = hasHardwareService ? (project.hardwareBudget || 0) - (project.hardwareInvoiced || 0) : 0;
+  const serviceRemaining = hasHardwareService ? (project.serviceBudget || 0) - (project.serviceInvoiced || 0) : 0;
   
   const getStatusColor = (status: string) => {
     switch(status) {

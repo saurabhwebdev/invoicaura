@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Calendar, CreditCard, X, Plus, Clock } from "lucide-react";
+import { Calendar, CreditCard, X, Plus, Clock, HardDrive, Wrench } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { Project } from './ProjectCard';
 import InvoiceList, { Invoice } from './InvoiceList';
@@ -35,6 +35,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
   // Filter invoices for this project
   const projectInvoices = invoices.filter(invoice => invoice.projectId === project.id);
   
+  // Check if project has hardware/service budget split
+  const hasBudgetSplit = project.hardwareBudget !== undefined && project.serviceBudget !== undefined;
+  
+  // Filter hardware and service invoices if project has split budget
+  const hardwareInvoices = hasBudgetSplit ? projectInvoices.filter(invoice => invoice.type === 'hardware') : [];
+  const serviceInvoices = hasBudgetSplit ? projectInvoices.filter(invoice => invoice.type === 'service') : [];
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -49,6 +56,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
   };
   
   const progress = Math.min((project.invoiced / project.budget) * 100, 100);
+  
+  // Calculate hardware and service progress if available
+  const hardwareProgress = hasBudgetSplit && project.hardwareBudget ? 
+    Math.min(((project.hardwareInvoiced || 0) / project.hardwareBudget) * 100, 100) : 0;
+  
+  const serviceProgress = hasBudgetSplit && project.serviceBudget ? 
+    Math.min(((project.serviceInvoiced || 0) / project.serviceBudget) * 100, 100) : 0;
+  
   const daysLeft = Math.ceil((new Date(project.endDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
   
   const handleCreateInvoice = (invoiceData: any) => {
@@ -74,34 +89,141 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
         </DialogHeader>
         
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="border-aura-blue/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Budget</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(project.budget)}</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-aura-blue/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Invoiced</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(project.invoiced)}</div>
-                <Progress 
-                  value={progress} 
-                  className={cn(
-                    "h-1.5 mt-2",
-                    progress > 90 ? "bg-aura-red" : 
-                    progress > 75 ? "bg-aura-orange" : 
-                    "bg-aura-green"
-                  )}
-                />
-              </CardContent>
-            </Card>
-          </div>
+          {/* Without split budget */}
+          {!hasBudgetSplit && (
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="border-aura-blue/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Budget</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(project.budget)}</div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-aura-blue/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Invoiced</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(project.invoiced)}</div>
+                  <Progress 
+                    value={progress} 
+                    className={cn(
+                      "h-1.5 mt-2",
+                      progress > 90 ? "bg-aura-red" : 
+                      progress > 75 ? "bg-aura-orange" : 
+                      "bg-aura-green"
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
+          {/* With split budget */}
+          {hasBudgetSplit && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <Card className="border-aura-blue/20">
+                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                      <HardDrive className="h-4 w-4 text-aura-blue" />
+                      Hardware Budget
+                    </CardTitle>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-aura-blue/10 text-aura-blue">
+                      {Math.round(hardwareProgress)}% Used
+                    </span>
+                  </CardHeader>
+                  <CardContent className="pb-4">
+                    <div className="text-xl font-bold">{formatCurrency(project.hardwareBudget || 0)}</div>
+                    <div className="flex justify-between text-sm mt-1 mb-2">
+                      <span className="text-muted-foreground">Invoiced</span>
+                      <span>{formatCurrency(project.hardwareInvoiced || 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-muted-foreground">Remaining</span>
+                      <span className="font-medium">{formatCurrency((project.hardwareBudget || 0) - (project.hardwareInvoiced || 0))}</span>
+                    </div>
+                    <Progress 
+                      value={hardwareProgress} 
+                      className={cn(
+                        "h-1.5 mt-1",
+                        hardwareProgress > 90 ? "bg-aura-red" : 
+                        hardwareProgress > 75 ? "bg-aura-orange" : 
+                        "bg-aura-blue"
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-aura-purple/20">
+                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                      <Wrench className="h-4 w-4 text-aura-purple" />
+                      Service Budget
+                    </CardTitle>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-aura-purple/10 text-aura-purple">
+                      {Math.round(serviceProgress)}% Used
+                    </span>
+                  </CardHeader>
+                  <CardContent className="pb-4">
+                    <div className="text-xl font-bold">{formatCurrency(project.serviceBudget || 0)}</div>
+                    <div className="flex justify-between text-sm mt-1 mb-2">
+                      <span className="text-muted-foreground">Invoiced</span>
+                      <span>{formatCurrency(project.serviceInvoiced || 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-muted-foreground">Remaining</span>
+                      <span className="font-medium">{formatCurrency((project.serviceBudget || 0) - (project.serviceInvoiced || 0))}</span>
+                    </div>
+                    <Progress 
+                      value={serviceProgress} 
+                      className={cn(
+                        "h-1.5 mt-1",
+                        serviceProgress > 90 ? "bg-aura-red" : 
+                        serviceProgress > 75 ? "bg-aura-orange" : 
+                        "bg-aura-purple"
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <Card className="border-aura-gray/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Budget Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm text-muted-foreground">Total Budget</span>
+                      <div className="text-xl font-bold">{formatCurrency(project.budget)}</div>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">Total Invoiced</span>
+                      <div className="text-xl font-bold">{formatCurrency(project.invoiced)}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm text-muted-foreground">Overall Progress</span>
+                      <span className="text-sm font-medium">{Math.round(progress)}%</span>
+                    </div>
+                    <Progress 
+                      value={progress} 
+                      className={cn(
+                        "h-2",
+                        progress > 90 ? "bg-aura-red" : 
+                        progress > 75 ? "bg-aura-orange" : 
+                        "bg-aura-green"
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
           
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
@@ -148,6 +270,18 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
             <Tabs defaultValue="all">
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
+                {hasBudgetSplit && (
+                  <>
+                    <TabsTrigger value="hardware" className="flex items-center gap-1">
+                      <HardDrive className="h-3 w-3" />
+                      Hardware
+                    </TabsTrigger>
+                    <TabsTrigger value="service" className="flex items-center gap-1">
+                      <Wrench className="h-3 w-3" />
+                      Service
+                    </TabsTrigger>
+                  </>
+                )}
                 <TabsTrigger value="pending">Pending</TabsTrigger>
                 <TabsTrigger value="paid">Paid</TabsTrigger>
               </TabsList>
@@ -165,6 +299,38 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   </div>
                 )}
               </TabsContent>
+              
+              {hasBudgetSplit && (
+                <>
+                  <TabsContent value="hardware" className="mt-4">
+                    {hardwareInvoices.length > 0 ? (
+                      <InvoiceList 
+                        invoices={hardwareInvoices} 
+                        title="" 
+                        onClick={() => {}}
+                      />
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No hardware invoices for this project yet.
+                      </div>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="service" className="mt-4">
+                    {serviceInvoices.length > 0 ? (
+                      <InvoiceList 
+                        invoices={serviceInvoices} 
+                        title="" 
+                        onClick={() => {}}
+                      />
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No service invoices for this project yet.
+                      </div>
+                    )}
+                  </TabsContent>
+                </>
+              )}
               
               <TabsContent value="pending" className="mt-4">
                 {projectInvoices.filter(i => i.status === 'pending').length > 0 ? (

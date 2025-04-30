@@ -25,6 +25,10 @@ export interface Project {
   endDate: string;
   status: 'active' | 'completed' | 'cancelled' | 'pending';
   invoiceCount: number;
+  hardwareBudget?: number;
+  serviceBudget?: number;
+  hardwareInvoiced?: number;
+  serviceInvoiced?: number;
   userId: string;
   createdAt?: any;
   updatedAt?: any;
@@ -40,6 +44,7 @@ export interface Invoice {
   date: string;
   description: string;
   status: 'paid' | 'pending' | 'overdue' | 'cancelled';
+  type?: 'hardware' | 'service';
   userId: string;
   thirdParty?: {
     company: string;
@@ -201,11 +206,24 @@ export const invoiceService = {
     
     if (projectSnap.exists()) {
       const projectData = projectSnap.data() as Project;
-      await updateDoc(projectRef, {
+      const updateData: Record<string, any> = {
         invoiced: projectData.invoiced + invoiceData.amount,
         invoiceCount: projectData.invoiceCount + 1,
         updatedAt: serverTimestamp()
-      });
+      };
+      
+      // If this is a hardware or service invoice and the project has hardware/service budgets
+      if (invoiceData.type && 
+          projectData.hardwareBudget !== undefined && 
+          projectData.serviceBudget !== undefined) {
+        if (invoiceData.type === 'hardware') {
+          updateData.hardwareInvoiced = (projectData.hardwareInvoiced || 0) + invoiceData.amount;
+        } else if (invoiceData.type === 'service') {
+          updateData.serviceInvoiced = (projectData.serviceInvoiced || 0) + invoiceData.amount;
+        }
+      }
+      
+      await updateDoc(projectRef, updateData);
     }
     
     return newInvoice;
@@ -249,25 +267,89 @@ export const invoiceService = {
       throw new Error('Invoice not found');
     }
     
+    const oldInvoiceData = oldInvoice.data() as Invoice;
+    
+    // Update the invoice
     await updateDoc(docRef, {
       ...invoiceData,
       updatedAt: serverTimestamp()
     });
     
-    // If the amount changed, update the project's invoiced amount
-    if (invoiceData.amount && invoiceData.amount !== oldInvoice.data().amount) {
-      const oldAmount = oldInvoice.data().amount;
-      const difference = invoiceData.amount - oldAmount;
+    // If the amount or type has changed, update the project's invoiced amount
+    if (invoiceData.amount !== undefined && 
+        invoiceData.amount !== oldInvoiceData.amount || 
+        invoiceData.type !== undefined && 
+        invoiceData.type !== oldInvoiceData.type) {
       
-      const projectRef = doc(projectsCollection(user.uid), oldInvoice.data().projectId);
+      const projectRef = doc(projectsCollection(user.uid), oldInvoiceData.projectId);
       const projectSnap = await getDoc(projectRef);
       
       if (projectSnap.exists()) {
         const projectData = projectSnap.data() as Project;
-        await updateDoc(projectRef, {
-          invoiced: projectData.invoiced + difference,
-          updatedAt: serverTimestamp()
-        });
+        const hasBudgetSplit = projectData.hardwareBudget !== undefined && 
+                              projectData.serviceBudget !== undefined;
+        
+        const updateData: Record<string, any> = {};
+        
+        // Update total invoiced amount if the amount changed
+        if (invoiceData.amount !== undefined && invoiceData.amount !== oldInvoiceData.amount) {
+          const amountDifference = invoiceData.amount - oldInvoiceData.amount;
+          updateData.invoiced = projectData.invoiced + amountDifference;
+          
+          // Update hardware or service invoiced amounts if the project has split budgets
+          if (hasBudgetSplit) {
+            const oldType = oldInvoiceData.type;
+            const newType = invoiceData.type !== undefined ? invoiceData.type : oldType;
+            
+            // If the type hasn't changed, simply update the corresponding invoiced amount
+            if (oldType === newType) {
+              if (oldType === 'hardware') {
+                updateData.hardwareInvoiced = (projectData.hardwareInvoiced || 0) + amountDifference;
+              } else if (oldType === 'service') {
+                updateData.serviceInvoiced = (projectData.serviceInvoiced || 0) + amountDifference;
+              }
+            } 
+            // If the type has changed, update both hardware and service invoiced amounts
+            else if (invoiceData.type !== undefined && oldType !== invoiceData.type) {
+              // Remove the amount from the old type
+              if (oldType === 'hardware') {
+                updateData.hardwareInvoiced = (projectData.hardwareInvoiced || 0) - oldInvoiceData.amount;
+              } else if (oldType === 'service') {
+                updateData.serviceInvoiced = (projectData.serviceInvoiced || 0) - oldInvoiceData.amount;
+              }
+              
+              // Add the amount to the new type
+              if (newType === 'hardware') {
+                updateData.hardwareInvoiced = (projectData.hardwareInvoiced || 0) + invoiceData.amount;
+              } else if (newType === 'service') {
+                updateData.serviceInvoiced = (projectData.serviceInvoiced || 0) + invoiceData.amount;
+              }
+            }
+          }
+        }
+        // If only the type changed but not the amount
+        else if (invoiceData.type !== undefined && 
+                invoiceData.type !== oldInvoiceData.type && 
+                hasBudgetSplit) {
+          // Remove the amount from the old type
+          if (oldInvoiceData.type === 'hardware') {
+            updateData.hardwareInvoiced = (projectData.hardwareInvoiced || 0) - oldInvoiceData.amount;
+          } else if (oldInvoiceData.type === 'service') {
+            updateData.serviceInvoiced = (projectData.serviceInvoiced || 0) - oldInvoiceData.amount;
+          }
+          
+          // Add the amount to the new type
+          if (invoiceData.type === 'hardware') {
+            updateData.hardwareInvoiced = (projectData.hardwareInvoiced || 0) + oldInvoiceData.amount;
+          } else if (invoiceData.type === 'service') {
+            updateData.serviceInvoiced = (projectData.serviceInvoiced || 0) + oldInvoiceData.amount;
+          }
+        }
+        
+        if (Object.keys(updateData).length > 0) {
+          updateData.updatedAt = serverTimestamp();
+          await updateDoc(projectRef, updateData);
+        }
       }
     }
     
@@ -280,26 +362,43 @@ export const invoiceService = {
   async deleteInvoice(user: User, invoiceId: string) {
     if (!user) throw new Error('User not authenticated');
     
-    const docRef = doc(invoicesCollection(user.uid), invoiceId);
-    const oldInvoice = await getDoc(docRef);
+    // Get the invoice data before deleting
+    const invoiceRef = doc(invoicesCollection(user.uid), invoiceId);
+    const invoiceSnap = await getDoc(invoiceRef);
     
-    if (!oldInvoice.exists()) {
+    if (!invoiceSnap.exists()) {
       throw new Error('Invoice not found');
     }
     
-    await deleteDoc(docRef);
+    const invoiceData = invoiceSnap.data() as Invoice;
+    
+    // Delete the invoice
+    await deleteDoc(invoiceRef);
     
     // Update the project's invoiced amount and invoice count
-    const projectRef = doc(projectsCollection(user.uid), oldInvoice.data().projectId);
+    const projectRef = doc(projectsCollection(user.uid), invoiceData.projectId);
     const projectSnap = await getDoc(projectRef);
     
     if (projectSnap.exists()) {
       const projectData = projectSnap.data() as Project;
-      await updateDoc(projectRef, {
-        invoiced: projectData.invoiced - oldInvoice.data().amount,
+      const updateData: Record<string, any> = {
+        invoiced: projectData.invoiced - invoiceData.amount,
         invoiceCount: projectData.invoiceCount - 1,
         updatedAt: serverTimestamp()
-      });
+      };
+      
+      // If this is a hardware or service invoice and the project has split budgets
+      if (invoiceData.type && 
+          projectData.hardwareBudget !== undefined && 
+          projectData.serviceBudget !== undefined) {
+        if (invoiceData.type === 'hardware') {
+          updateData.hardwareInvoiced = (projectData.hardwareInvoiced || 0) - invoiceData.amount;
+        } else if (invoiceData.type === 'service') {
+          updateData.serviceInvoiced = (projectData.serviceInvoiced || 0) - invoiceData.amount;
+        }
+      }
+      
+      await updateDoc(projectRef, updateData);
     }
     
     return true;
