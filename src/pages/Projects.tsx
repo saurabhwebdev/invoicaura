@@ -6,10 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProjectCard, { Project } from '@/components/ProjectCard';
 import ProjectDetail from '@/components/ProjectDetail';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, HardDrive, Wrench } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useProjects } from '@/context/ProjectsContext';
 
 const Projects = () => {
@@ -22,7 +23,10 @@ const Projects = () => {
     client: '',
     budget: 0,
     startDate: '',
-    endDate: ''
+    endDate: '',
+    splitBudget: false,
+    hardwareBudget: 0,
+    serviceBudget: 0
   });
 
   const handleCreateProject = () => {
@@ -31,7 +35,7 @@ const Projects = () => {
   
   const handleSubmitProject = () => {
     // Validation
-    if (!newProject.name || !newProject.client || !newProject.budget || !newProject.startDate || !newProject.endDate) {
+    if (!newProject.name || !newProject.client || !newProject.startDate || !newProject.endDate) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields.",
@@ -40,14 +44,44 @@ const Projects = () => {
       return;
     }
     
+    // Validate budget
+    if (!newProject.splitBudget && !newProject.budget) {
+      toast({
+        title: "Missing Budget",
+        description: "Please enter a total budget for the project.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (newProject.splitBudget && (!newProject.hardwareBudget || !newProject.serviceBudget)) {
+      toast({
+        title: "Missing Budget Details",
+        description: "Please enter both hardware and service budgets.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Calculate the total budget when split
+    const totalBudget = newProject.splitBudget 
+      ? Number(newProject.hardwareBudget) + Number(newProject.serviceBudget)
+      : Number(newProject.budget);
+    
     // Create new project
     createProject({
       name: newProject.name,
       client: newProject.client,
-      budget: Number(newProject.budget),
+      budget: totalBudget,
       startDate: newProject.startDate,
       endDate: newProject.endDate,
-      status: "active"
+      status: "active",
+      ...(newProject.splitBudget && {
+        hardwareBudget: Number(newProject.hardwareBudget),
+        serviceBudget: Number(newProject.serviceBudget),
+        hardwareInvoiced: 0,
+        serviceInvoiced: 0
+      })
     });
     
     setShowNewProjectDialog(false);
@@ -58,7 +92,10 @@ const Projects = () => {
       client: '',
       budget: 0,
       startDate: '',
-      endDate: ''
+      endDate: '',
+      splitBudget: false,
+      hardwareBudget: 0,
+      serviceBudget: 0
     });
   };
   
@@ -219,17 +256,94 @@ const Projects = () => {
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="budget" className="text-right">
-                Budget
-              </Label>
-              <Input
-                id="budget"
-                type="number"
-                value={newProject.budget}
-                onChange={(e) => setNewProject({...newProject, budget: Number(e.target.value)})}
-                className="col-span-3"
-              />
+              <div className="text-right">
+                <Label htmlFor="projectSplitBudget">Budget Type</Label>
+              </div>
+              <div className="col-span-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="projectSplitBudget" 
+                    checked={newProject.splitBudget}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        // When enabling split budget, set initial hardware and service based on current budget
+                        const halfBudget = newProject.budget / 2;
+                        setNewProject({
+                          ...newProject, 
+                          splitBudget: true,
+                          hardwareBudget: halfBudget,
+                          serviceBudget: halfBudget
+                        });
+                      } else {
+                        // When disabling, set budget to the sum of hardware and service
+                        setNewProject({
+                          ...newProject, 
+                          splitBudget: false,
+                          budget: Number(newProject.hardwareBudget) + Number(newProject.serviceBudget)
+                        });
+                      }
+                    }}
+                  />
+                  <Label htmlFor="projectSplitBudget" className="font-normal cursor-pointer">
+                    Split budget between Hardware and Service
+                  </Label>
+                </div>
+              </div>
             </div>
+            
+            {!newProject.splitBudget ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="budget" className="text-right">
+                  Total Budget
+                </Label>
+                <Input
+                  id="budget"
+                  type="number"
+                  value={newProject.budget}
+                  onChange={(e) => setNewProject({...newProject, budget: Number(e.target.value)})}
+                  className="col-span-3"
+                />
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="hardwareBudget" className="text-right flex items-center gap-1">
+                    <HardDrive className="h-4 w-4 text-aura-blue" />
+                    Hardware Budget
+                  </Label>
+                  <Input
+                    id="hardwareBudget"
+                    type="number"
+                    value={newProject.hardwareBudget}
+                    onChange={(e) => setNewProject({...newProject, hardwareBudget: Number(e.target.value)})}
+                    className="col-span-3"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="serviceBudget" className="text-right flex items-center gap-1">
+                    <Wrench className="h-4 w-4 text-aura-purple" />
+                    Service Budget
+                  </Label>
+                  <Input
+                    id="serviceBudget"
+                    type="number"
+                    value={newProject.serviceBudget}
+                    onChange={(e) => setNewProject({...newProject, serviceBudget: Number(e.target.value)})}
+                    className="col-span-3"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="text-right text-sm text-muted-foreground">
+                    Total Budget
+                  </div>
+                  <div className="col-span-3 font-medium">
+                    ${(Number(newProject.hardwareBudget) + Number(newProject.serviceBudget)).toLocaleString()}
+                  </div>
+                </div>
+              </>
+            )}
             
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="startDate" className="text-right">
