@@ -196,68 +196,6 @@ const Settings = () => {
     });
   };
 
-  const handleDeleteDummyData = async () => {
-    if (!currentUser) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to delete data",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // Show loading message
-      toast({
-        title: "Processing",
-        description: "Deleting sample data, please wait..."
-      });
-
-      // Delete all invoices first
-      const deletePromises: Promise<boolean>[] = [];
-      
-      // Delete all invoices first to avoid foreign key constraints
-      for (const invoice of invoices) {
-        deletePromises.push(invoiceService.deleteInvoice(currentUser, invoice.id));
-      }
-      
-      // Wait for all invoice deletions to complete
-      await Promise.all(deletePromises);
-      
-      // Reset the deletePromises array
-      deletePromises.length = 0;
-      
-      // Now delete all projects
-      for (const project of projects) {
-        deletePromises.push(projectService.deleteProject(currentUser, project.id));
-      }
-      
-      // Wait for all project deletions to complete
-      await Promise.all(deletePromises);
-      
-      // Finally remove user settings
-      localStorage.removeItem('userSettings');
-      
-      // Success message
-      toast({
-        title: "Success",
-        description: "All sample data has been removed. The page will reload now."
-      });
-      
-      // Reload the page after a short delay to refresh data
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (error: any) {
-      console.error('Error deleting dummy data:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete sample data",
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <Layout>
       <div className="space-y-8">
@@ -474,39 +412,11 @@ const Settings = () => {
               <CardHeader>
                 <CardTitle>System Preferences</CardTitle>
                 <CardDescription>
-                  Configure additional system and testing preferences
+                  Configure additional system preferences
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Testing Data</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Manage the sample data used for testing the application
-                  </p>
-                  
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Dummy Data
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will remove all sample projects, invoices, and settings. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteDummyData}>
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                {/* System preferences content will go here when needed */}
               </CardContent>
             </Card>
           </TabsContent>
