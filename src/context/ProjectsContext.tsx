@@ -15,6 +15,7 @@ interface ProjectsContextType {
   createInvoice: (invoiceData: any) => Promise<void>;
   createThirdPartyInvoice: (thirdPartyData: any) => Promise<void>;
   updateInvoiceStatus: (invoiceId: string, status: 'paid' | 'pending' | 'overdue') => Promise<any>;
+  refreshData: () => Promise<boolean>;
 }
 
 // Context with default undefined value
@@ -78,34 +79,56 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
     type: invoice.type
   });
 
+  // Load all data function
+  const loadData = async () => {
+    if (!currentUser) return false;
+
+    setLoading(true);
+    try {
+      // Load projects
+      const userProjects = await projectService.getProjects(currentUser);
+      setProjects(userProjects.map(mapToComponentProject));
+
+      // Load invoices
+      const userInvoices = await invoiceService.getInvoices(currentUser);
+      setInvoices(userInvoices.map(mapToComponentInvoice));
+      return true;
+    } catch (error: any) {
+      console.error("Error loading data:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load data",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
-    const loadData = async () => {
-      if (!currentUser) return;
-
-      setLoading(true);
-      try {
-        // Load projects
-        const userProjects = await projectService.getProjects(currentUser);
-        setProjects(userProjects.map(mapToComponentProject));
-
-        // Load invoices
-        const userInvoices = await invoiceService.getInvoices(currentUser);
-        setInvoices(userInvoices.map(mapToComponentInvoice));
-      } catch (error: any) {
-        console.error("Error loading data:", error);
-        toast({
-          title: "Error",
-          description: error.message || "Failed to load data",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadData();
-  }, [currentUser, toast]);
+  }, [currentUser]);
+
+  // Refresh invoices data
+  const refreshInvoices = async () => {
+    if (!currentUser) return false;
+    
+    try {
+      const userInvoices = await invoiceService.getInvoices(currentUser);
+      setInvoices(userInvoices.map(mapToComponentInvoice));
+      return true;
+    } catch (error: any) {
+      console.error("Error refreshing invoices:", error);
+      return false;
+    }
+  };
+
+  // Public method to refresh all data
+  const refreshData = async () => {
+    return await loadData();
+  };
 
   // Create a new project
   const createProject = async (projectData: Omit<Project, 'id' | 'invoiced' | 'invoiceCount'>) => {
@@ -342,12 +365,21 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
       const invoice = invoices.find(i => i.id === invoiceId);
       if (!invoice) {
         console.error(`Invoice with ID ${invoiceId} not found in local state`);
-        toast({
-          title: "Error",
-          description: "Invoice not found in local state",
-          variant: "destructive"
-        });
-        return Promise.reject(new Error('Invoice not found in local state'));
+        
+        // Try to refresh invoices first
+        const refreshed = await refreshInvoices();
+        
+        // Check again after refresh
+        const refreshedInvoice = refreshed ? invoices.find(i => i.id === invoiceId) : null;
+        
+        if (!refreshedInvoice) {
+          toast({
+            title: "Error",
+            description: "Invoice not found in local state. The data has been refreshed.",
+            variant: "destructive"
+          });
+          return Promise.reject(new Error('Invoice not found in local state'));
+        }
       }
 
       // Try to verify the invoice exists in the database before updating
@@ -359,9 +391,12 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
         // If the invoice doesn't exist in the database, remove it from our local state
         setInvoices(prevInvoices => prevInvoices.filter(i => i.id !== invoiceId));
         
+        // Refresh invoices to ensure local state is in sync with the database
+        await refreshInvoices();
+        
         toast({
           title: "Error",
-          description: "Invoice not found in database. It may have been deleted.",
+          description: "Invoice not found in database. It may have been deleted. The data has been refreshed.",
           variant: "destructive"
         });
         return Promise.reject(new Error('Invoice not found in database'));
@@ -387,6 +422,13 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
       return updatedInvoice;
     } catch (error: any) {
       console.error("Error updating invoice status:", error);
+      
+      // If there was an unexpected error, refresh the invoices to ensure state is in sync
+      if (error.message !== 'Invoice not found in local state' && 
+          error.message !== 'Invoice not found in database') {
+        await refreshInvoices();
+      }
+      
       toast({
         title: "Error",
         description: error.message || "Failed to update invoice status",
@@ -407,7 +449,8 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
         deleteProject,
         createInvoice,
         createThirdPartyInvoice,
-        updateInvoiceStatus
+        updateInvoiceStatus,
+        refreshData
       }}
     >
       {children}

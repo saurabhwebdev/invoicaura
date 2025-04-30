@@ -10,7 +10,8 @@ const Index = () => {
     loading, 
     createInvoice, 
     createThirdPartyInvoice,
-    updateInvoiceStatus
+    updateInvoiceStatus,
+    refreshData
   } = useProjects();
 
   return (
@@ -26,6 +27,7 @@ const Index = () => {
           onCreateInvoice={createInvoice}
           onCreateThirdPartyInvoice={createThirdPartyInvoice}
           onUpdateInvoiceStatus={updateInvoiceStatus}
+          onRefreshData={refreshData}
         />
       )}
     </Layout>

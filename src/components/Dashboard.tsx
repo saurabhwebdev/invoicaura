@@ -19,7 +19,8 @@ import {
   PieChart, 
   TrendingUp,
   CreditCard,
-  AlertCircle
+  AlertCircle,
+  RefreshCcw
 } from "lucide-react";
 import { Project } from '@/lib/dbService';
 
@@ -29,6 +30,7 @@ interface DashboardProps {
   onCreateInvoice: (invoice: any) => void;
   onCreateThirdPartyInvoice?: (thirdPartyData: any) => void;
   onUpdateInvoiceStatus?: (invoiceId: string, status: 'paid' | 'pending' | 'overdue') => void;
+  onRefreshData?: () => Promise<boolean>;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -36,13 +38,15 @@ const Dashboard: React.FC<DashboardProps> = ({
   invoices,
   onCreateInvoice,
   onCreateThirdPartyInvoice,
-  onUpdateInvoiceStatus
+  onUpdateInvoiceStatus,
+  onRefreshData
 }) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("invoices");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // After initial render, set loaded to true to trigger animations
   useEffect(() => {
@@ -103,6 +107,39 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      if (onRefreshData) {
+        const success = await onRefreshData();
+        if (success) {
+          toast({
+            title: "Success",
+            description: "Data refreshed successfully"
+          });
+        } else {
+          toast({
+            title: "Warning",
+            description: "Unable to refresh data completely. Please try again.",
+            variant: "destructive"
+          });
+        }
+      } else {
+        // Fallback to page reload if no refresh handler provided
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 transition-all duration-500 ease-out ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
@@ -113,6 +150,16 @@ const Dashboard: React.FC<DashboardProps> = ({
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-1 w-full sm:w-auto"
+          >
+            <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+          </Button>
           <InvoiceForm 
             projects={projects} 
             onSubmit={onCreateInvoice} 

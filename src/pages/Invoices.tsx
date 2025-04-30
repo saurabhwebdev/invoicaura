@@ -9,13 +9,14 @@ import ThirdPartyInvoiceForm from '@/components/ThirdPartyInvoiceForm';
 import { useProjects } from '@/context/ProjectsContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { FileText, Receipt } from 'lucide-react';
+import { FileText, Receipt, RefreshCcw } from 'lucide-react';
 
 const Invoices = () => {
   const { toast } = useToast();
-  const { projects, invoices, createInvoice, createThirdPartyInvoice, updateInvoiceStatus } = useProjects();
+  const { projects, invoices, createInvoice, createThirdPartyInvoice, updateInvoiceStatus, refreshData } = useProjects();
   const [activeTab, setActiveTab] = useState("clientInvoices");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const handleInvoiceClick = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
@@ -68,6 +69,34 @@ const Invoices = () => {
       description: `Invoice from ${company} has been created successfully.`
     });
   };
+  
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const success = await refreshData();
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Data refreshed successfully"
+        });
+      } else {
+        toast({
+          title: "Warning",
+          description: "Unable to refresh data completely. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Get third-party invoices
   const thirdPartyInvoices = invoices.filter(invoice => invoice.thirdParty);
@@ -89,6 +118,16 @@ const Invoices = () => {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-1"
+            >
+              <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+            </Button>
             <InvoiceForm 
               projects={projects} 
               onSubmit={handleCreateInvoice}
