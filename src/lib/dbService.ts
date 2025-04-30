@@ -39,6 +39,7 @@ export interface Project {
     combined?: string;
   };
   currentPo?: 'hardware' | 'software' | 'combined';
+  activePOs?: ('hardware' | 'software' | 'combined')[];
   userId: string;
   createdAt?: any;
   updatedAt?: any;

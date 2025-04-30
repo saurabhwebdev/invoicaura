@@ -26,6 +26,7 @@ interface InvoiceFormProps {
       combined?: string;
     };
     currentPo?: 'hardware' | 'software' | 'combined';
+    activePOs?: ('hardware' | 'software' | 'combined')[];
   }>;
   onSubmit: (invoice: any) => void;
   className?: string;
@@ -59,27 +60,43 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       const project = projects.find(p => p.id === selectedProjectId);
       let poNumber = '';
       
-      // Set default PO based on current project PO setting
+      // Set default PO based on current project PO setting or first active PO
       if (project?.poNumbers) {
-        if (project.currentPo === 'hardware' && project.poNumbers.hardware) {
-          poNumber = project.poNumbers.hardware;
-        } else if (project.currentPo === 'software' && project.poNumbers.software) {
-          poNumber = project.poNumbers.software;
-        } else if (project.currentPo === 'combined' && project.poNumbers.combined) {
-          poNumber = project.poNumbers.combined;
-        } else if (project.poNumbers.combined) {
-          poNumber = project.poNumbers.combined;
-        } else if (project.poNumbers.hardware) {
-          poNumber = project.poNumbers.hardware;
-        } else if (project.poNumbers.software) {
-          poNumber = project.poNumbers.software;
+        if (project.activePOs?.length) {
+          // If there are active POs, use the first one as default
+          const firstActivePo = project.activePOs[0];
+          if (firstActivePo === 'hardware' && project.poNumbers.hardware) {
+            poNumber = project.poNumbers.hardware;
+          } else if (firstActivePo === 'software' && project.poNumbers.software) {
+            poNumber = project.poNumbers.software;
+          } else if (firstActivePo === 'combined' && project.poNumbers.combined) {
+            poNumber = project.poNumbers.combined;
+          }
+        } else if (project.currentPo) {
+          // Backward compatibility with currentPo
+          if (project.currentPo === 'hardware' && project.poNumbers.hardware) {
+            poNumber = project.poNumbers.hardware;
+          } else if (project.currentPo === 'software' && project.poNumbers.software) {
+            poNumber = project.poNumbers.software;
+          } else if (project.currentPo === 'combined' && project.poNumbers.combined) {
+            poNumber = project.poNumbers.combined;
+          }
+        } else {
+          // Fallback to any available PO
+          if (project.poNumbers.combined) {
+            poNumber = project.poNumbers.combined;
+          } else if (project.poNumbers.hardware) {
+            poNumber = project.poNumbers.hardware;
+          } else if (project.poNumbers.software) {
+            poNumber = project.poNumbers.software;
+          }
         }
       }
       
       setFormData(prev => ({ 
         ...prev, 
         projectId: selectedProjectId,
-        poNumber: poNumber 
+        poNumber: poNumber
       }));
     }
   }, [selectedProjectId, projects]);
@@ -116,20 +133,36 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     const project = projects.find(p => p.id === value);
     let poNumber = '';
     
-    // Set default PO based on current project PO setting
+    // Set default PO based on active POs or current project PO setting
     if (project?.poNumbers) {
-      if (project.currentPo === 'hardware' && project.poNumbers.hardware) {
-        poNumber = project.poNumbers.hardware;
-      } else if (project.currentPo === 'software' && project.poNumbers.software) {
-        poNumber = project.poNumbers.software;
-      } else if (project.currentPo === 'combined' && project.poNumbers.combined) {
-        poNumber = project.poNumbers.combined;
-      } else if (project.poNumbers.combined) {
-        poNumber = project.poNumbers.combined;
-      } else if (project.poNumbers.hardware) {
-        poNumber = project.poNumbers.hardware;
-      } else if (project.poNumbers.software) {
-        poNumber = project.poNumbers.software;
+      if (project.activePOs?.length) {
+        // If there are active POs, use the first one as default
+        const firstActivePo = project.activePOs[0];
+        if (firstActivePo === 'hardware' && project.poNumbers.hardware) {
+          poNumber = project.poNumbers.hardware;
+        } else if (firstActivePo === 'software' && project.poNumbers.software) {
+          poNumber = project.poNumbers.software;
+        } else if (firstActivePo === 'combined' && project.poNumbers.combined) {
+          poNumber = project.poNumbers.combined;
+        }
+      } else if (project.currentPo) {
+        // Backward compatibility with currentPo
+        if (project.currentPo === 'hardware' && project.poNumbers.hardware) {
+          poNumber = project.poNumbers.hardware;
+        } else if (project.currentPo === 'software' && project.poNumbers.software) {
+          poNumber = project.poNumbers.software;
+        } else if (project.currentPo === 'combined' && project.poNumbers.combined) {
+          poNumber = project.poNumbers.combined;
+        }
+      } else {
+        // Fallback to any available PO
+        if (project.poNumbers.combined) {
+          poNumber = project.poNumbers.combined;
+        } else if (project.poNumbers.hardware) {
+          poNumber = project.poNumbers.hardware;
+        } else if (project.poNumbers.software) {
+          poNumber = project.poNumbers.software;
+        }
       }
     }
     
@@ -216,6 +249,76 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     });
     
     setOpen(false);
+  };
+  
+  // Add helper functions to get available POs and PO type label
+  const getAvailablePOs = () => {
+    if (!selectedProject?.poNumbers) return [];
+    
+    const availablePOs = [];
+    const activePOTypes = selectedProject.activePOs || (selectedProject.currentPo ? [selectedProject.currentPo] : []);
+    
+    // If we have active POs defined, only include those
+    if (activePOTypes.length > 0) {
+      if (activePOTypes.includes('hardware') && selectedProject.poNumbers.hardware) {
+        availablePOs.push({ 
+          value: selectedProject.poNumbers.hardware, 
+          label: `Hardware PO: ${selectedProject.poNumbers.hardware}` 
+        });
+      }
+      
+      if (activePOTypes.includes('software') && selectedProject.poNumbers.software) {
+        availablePOs.push({ 
+          value: selectedProject.poNumbers.software, 
+          label: `Software PO: ${selectedProject.poNumbers.software}` 
+        });
+      }
+      
+      if (activePOTypes.includes('combined') && selectedProject.poNumbers.combined) {
+        availablePOs.push({ 
+          value: selectedProject.poNumbers.combined, 
+          label: `Combined PO: ${selectedProject.poNumbers.combined}` 
+        });
+      }
+    } else {
+      // If no active POs defined, include all available POs
+      if (selectedProject.poNumbers.hardware) {
+        availablePOs.push({ 
+          value: selectedProject.poNumbers.hardware, 
+          label: `Hardware PO: ${selectedProject.poNumbers.hardware}` 
+        });
+      }
+      
+      if (selectedProject.poNumbers.software) {
+        availablePOs.push({ 
+          value: selectedProject.poNumbers.software, 
+          label: `Software PO: ${selectedProject.poNumbers.software}` 
+        });
+      }
+      
+      if (selectedProject.poNumbers.combined) {
+        availablePOs.push({ 
+          value: selectedProject.poNumbers.combined, 
+          label: `Combined PO: ${selectedProject.poNumbers.combined}` 
+        });
+      }
+    }
+    
+    return availablePOs;
+  };
+
+  const getPOTypeLabel = (poNumber: string) => {
+    if (!selectedProject?.poNumbers) return "";
+    
+    if (selectedProject.poNumbers.hardware === poNumber) {
+      return "Using Hardware PO";
+    } else if (selectedProject.poNumbers.software === poNumber) {
+      return "Using Software PO";
+    } else if (selectedProject.poNumbers.combined === poNumber) {
+      return "Using Combined PO";
+    }
+    
+    return "";
   };
   
   return (
@@ -347,19 +450,36 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
           {selectedProject?.poNumbers && (
             <div className="space-y-2">
               <Label htmlFor="poNumber">Purchase Order Number</Label>
-              <Input
-                id="poNumber"
-                name="poNumber"
-                value={formData.poNumber}
-                onChange={handleChange}
-                placeholder="PO Number"
-                readOnly={!!formData.poNumber} // Make read-only if auto-selected
-                className={!!formData.poNumber ? "bg-muted cursor-not-allowed" : ""}
-              />
+              {getAvailablePOs().length > 1 ? (
+                <Select
+                  value={formData.poNumber}
+                  onValueChange={(value) => setFormData({...formData, poNumber: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select PO number" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAvailablePOs().map(po => (
+                      <SelectItem key={po.value} value={po.value}>
+                        {po.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="poNumber"
+                  name="poNumber"
+                  value={formData.poNumber}
+                  onChange={handleChange}
+                  placeholder="PO Number"
+                  readOnly={!!formData.poNumber}
+                  className={!!formData.poNumber ? "bg-muted cursor-not-allowed" : ""}
+                />
+              )}
               {!!formData.poNumber && (
                 <p className="text-xs text-muted-foreground">
-                  Using {formData.type === 'hardware' ? 'Hardware' : 
-                         formData.type === 'service' ? 'Software' : 'Combined'} PO
+                  {getPOTypeLabel(formData.poNumber)}
                 </p>
               )}
             </div>

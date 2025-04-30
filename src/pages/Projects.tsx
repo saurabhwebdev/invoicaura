@@ -24,12 +24,13 @@ const Projects = () => {
   const [newProject, setNewProject] = useState({
     name: '',
     client: '',
+    status: 'active' as 'active' | 'completed' | 'pending',
     budget: 0,
-    startDate: '',
-    endDate: '',
     splitBudget: false,
     hardwareBudget: 0,
     serviceBudget: 0,
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
     gstEnabled: false,
     gstPercentage: 18,
     customGst: false,
@@ -41,112 +42,128 @@ const Projects = () => {
       software: '',
       combined: ''
     },
-    currentPo: undefined as 'hardware' | 'software' | 'combined' | undefined
+    currentPo: undefined as 'hardware' | 'software' | 'combined' | undefined,
+    activePOs: [] as ('hardware' | 'software' | 'combined')[]
   });
 
   const handleCreateProject = () => {
     setShowNewProjectDialog(true);
   };
   
-  const handleSubmitProject = () => {
-    // Validation
-    if (!newProject.name || !newProject.client || !newProject.startDate || !newProject.endDate) {
+  const handleSubmitProject = async () => {
+    try {
+      // Validate required fields
+      if (!newProject.name || !newProject.client || !newProject.startDate || !newProject.endDate) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all required fields.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Validate budget
+      if (!newProject.splitBudget && !newProject.budget) {
+        toast({
+          title: "Missing Budget",
+          description: "Please enter a total budget for the project.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (newProject.splitBudget && (!newProject.hardwareBudget || !newProject.serviceBudget)) {
+        toast({
+          title: "Missing Budget Details",
+          description: "Please enter both hardware and service budgets.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Calculate the total budget when split
+      const totalBudget = newProject.splitBudget 
+        ? Number(newProject.hardwareBudget) + Number(newProject.serviceBudget)
+        : Number(newProject.budget);
+      
+      // Create the new project object
+      const project = {
+        name: newProject.name,
+        client: newProject.client,
+        status: newProject.status,
+        budget: totalBudget,
+        invoiced: 0,
+        startDate: newProject.startDate,
+        endDate: newProject.endDate,
+        invoiceCount: 0,
+        poNumbers: newProject.poNumbers,
+        currentPo: newProject.currentPo,
+        activePOs: newProject.activePOs,
+        ...(newProject.splitBudget && {
+          hardwareBudget: Number(newProject.hardwareBudget),
+          serviceBudget: Number(newProject.serviceBudget),
+          hardwareInvoiced: 0,
+          serviceInvoiced: 0
+        }),
+        ...(newProject.gstEnabled && {
+          gstPercentage: newProject.customGst ? Number(newProject.gstPercentage) : 18
+        }),
+        ...(newProject.tdsEnabled && {
+          tdsPercentage: newProject.customTds ? Number(newProject.tdsPercentage) : 2
+        })
+      };
+      
+      // Add GST and TDS data if enabled
+      if (newProject.gstEnabled) {
+        Object.assign(project, {
+          gstEnabled: true,
+          ...(newProject.customGst && { gstPercentage: Number(newProject.gstPercentage) })
+        });
+      }
+      
+      if (newProject.tdsEnabled) {
+        Object.assign(project, {
+          tdsEnabled: true,
+          ...(newProject.customTds && { tdsPercentage: Number(newProject.tdsPercentage) })
+        });
+      }
+      
+      // Create the project
+      await createProject(project);
+      setShowNewProjectDialog(false);
+      
+      // Reset form
+      setNewProject({
+        name: '',
+        client: '',
+        status: 'active' as 'active' | 'completed' | 'pending',
+        budget: 0,
+        splitBudget: false,
+        hardwareBudget: 0,
+        serviceBudget: 0,
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+        gstEnabled: false,
+        gstPercentage: 18,
+        customGst: false,
+        tdsEnabled: false,
+        tdsPercentage: 2,
+        customTds: false,
+        poNumbers: {
+          hardware: '',
+          software: '',
+          combined: ''
+        },
+        currentPo: undefined,
+        activePOs: []
+      });
+    } catch (error) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
+        title: "Error",
+        description: "An error occurred while creating the project.",
         variant: "destructive"
       });
-      return;
     }
-    
-    // Validate budget
-    if (!newProject.splitBudget && !newProject.budget) {
-      toast({
-        title: "Missing Budget",
-        description: "Please enter a total budget for the project.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (newProject.splitBudget && (!newProject.hardwareBudget || !newProject.serviceBudget)) {
-      toast({
-        title: "Missing Budget Details",
-        description: "Please enter both hardware and service budgets.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Calculate the total budget when split
-    const totalBudget = newProject.splitBudget 
-      ? Number(newProject.hardwareBudget) + Number(newProject.serviceBudget)
-      : Number(newProject.budget);
-    
-    // Create project data
-    const projectData = {
-      name: newProject.name,
-      client: newProject.client,
-      budget: totalBudget,
-      startDate: newProject.startDate,
-      endDate: newProject.endDate,
-      status: "active" as 'active' | 'completed' | 'pending',
-      gstEnabled: newProject.gstEnabled,
-      tdsEnabled: newProject.tdsEnabled,
-      poNumbers: newProject.poNumbers,
-      currentPo: newProject.currentPo
-    };
-    
-    // Add split budget data if enabled
-    if (newProject.splitBudget) {
-      Object.assign(projectData, {
-        hardwareBudget: Number(newProject.hardwareBudget),
-        serviceBudget: Number(newProject.serviceBudget),
-        hardwareInvoiced: 0,
-        serviceInvoiced: 0
-      });
-    }
-    
-    // Add GST and TDS data if enabled
-    if (newProject.gstEnabled) {
-      Object.assign(projectData, {
-        gstPercentage: newProject.customGst ? Number(newProject.gstPercentage) : 18
-      });
-    }
-    
-    if (newProject.tdsEnabled) {
-      Object.assign(projectData, {
-        tdsPercentage: newProject.customTds ? Number(newProject.tdsPercentage) : 2
-      });
-    }
-    
-    // Create the project
-    createProject(projectData);
-    setShowNewProjectDialog(false);
-    
-    // Reset form
-    setNewProject({
-      name: '',
-      client: '',
-      budget: 0,
-      startDate: '',
-      endDate: '',
-      splitBudget: false,
-      hardwareBudget: 0,
-      serviceBudget: 0,
-      gstEnabled: false,
-      gstPercentage: 18,
-      customGst: false,
-      tdsEnabled: false,
-      tdsPercentage: 2,
-      customTds: false,
-      poNumbers: {
-        hardware: '',
-        software: '',
-        combined: ''
-      },
-      currentPo: undefined
-    });
   };
   
   const handleProjectClick = (project: Project) => {
@@ -626,22 +643,78 @@ const Projects = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="projectCurrentPo" className="text-sm mb-1 block">Current Active PO</Label>
-                    <Select 
-                      value={newProject.currentPo} 
-                      onValueChange={(value) => setNewProject({
-                        ...newProject, 
-                        currentPo: value as 'hardware' | 'software' | 'combined'
-                      })}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select active PO" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="hardware">Hardware PO</SelectItem>
-                        <SelectItem value="software">Software PO</SelectItem>
-                        <SelectItem value="combined">Combined PO</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="projectActivePOs" className="text-sm mb-1 block">Active PO(s)</Label>
+                    <div className="space-y-2">
+                      {newProject.poNumbers.hardware && (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="active-hardware-po" 
+                            checked={newProject.activePOs.includes('hardware')}
+                            onCheckedChange={(checked) => {
+                              const newActivePOs = [...newProject.activePOs];
+                              if (checked) {
+                                if (!newActivePOs.includes('hardware')) {
+                                  newActivePOs.push('hardware');
+                                }
+                              } else {
+                                const index = newActivePOs.indexOf('hardware');
+                                if (index !== -1) {
+                                  newActivePOs.splice(index, 1);
+                                }
+                              }
+                              setNewProject({...newProject, activePOs: newActivePOs, currentPo: undefined});
+                            }}
+                          />
+                          <Label htmlFor="active-hardware-po" className="font-normal">Hardware PO</Label>
+                        </div>
+                      )}
+                      {newProject.poNumbers.software && (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="active-software-po" 
+                            checked={newProject.activePOs.includes('software')}
+                            onCheckedChange={(checked) => {
+                              const newActivePOs = [...newProject.activePOs];
+                              if (checked) {
+                                if (!newActivePOs.includes('software')) {
+                                  newActivePOs.push('software');
+                                }
+                              } else {
+                                const index = newActivePOs.indexOf('software');
+                                if (index !== -1) {
+                                  newActivePOs.splice(index, 1);
+                                }
+                              }
+                              setNewProject({...newProject, activePOs: newActivePOs, currentPo: undefined});
+                            }}
+                          />
+                          <Label htmlFor="active-software-po" className="font-normal">Software PO</Label>
+                        </div>
+                      )}
+                      {newProject.poNumbers.combined && (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="active-combined-po" 
+                            checked={newProject.activePOs.includes('combined')}
+                            onCheckedChange={(checked) => {
+                              const newActivePOs = [...newProject.activePOs];
+                              if (checked) {
+                                if (!newActivePOs.includes('combined')) {
+                                  newActivePOs.push('combined');
+                                }
+                              } else {
+                                const index = newActivePOs.indexOf('combined');
+                                if (index !== -1) {
+                                  newActivePOs.splice(index, 1);
+                                }
+                              }
+                              setNewProject({...newProject, activePOs: newActivePOs, currentPo: undefined});
+                            }}
+                          />
+                          <Label htmlFor="active-combined-po" className="font-normal">Combined PO</Label>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

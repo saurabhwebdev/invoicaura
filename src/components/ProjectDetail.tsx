@@ -59,7 +59,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
       software: '',
       combined: ''
     },
-    currentPo: project.currentPo || undefined
+    currentPo: project.currentPo || undefined,
+    activePOs: project.activePOs || []
   });
   
   // Filter invoices for this project
@@ -127,87 +128,60 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
         software: '',
         combined: ''
       },
-      currentPo: project.currentPo
+      currentPo: project.currentPo,
+      activePOs: project.activePOs || []
     });
     setShowEditModal(true);
   };
   
-  const handleSubmitEdit = () => {
-    // Validation
-    if (!editFormData.name || !editFormData.client || !editFormData.startDate || !editFormData.endDate) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
-      return;
+  const handleSubmitEdit = async () => {
+    try {
+      // Process the edit form data into the project structure
+      const updatedProject = {
+        ...project,
+        name: editFormData.name,
+        client: editFormData.client,
+        status: editFormData.status,
+        budget: editFormData.splitBudget ? (editFormData.hardwareBudget + editFormData.serviceBudget) : editFormData.budget,
+        hardwareBudget: editFormData.splitBudget ? editFormData.hardwareBudget : undefined,
+        serviceBudget: editFormData.splitBudget ? editFormData.serviceBudget : undefined,
+        startDate: editFormData.startDate,
+        endDate: editFormData.endDate,
+        gstEnabled: editFormData.gstEnabled,
+        gstPercentage: editFormData.gstEnabled ? editFormData.gstPercentage : undefined,
+        tdsEnabled: editFormData.tdsEnabled,
+        tdsPercentage: editFormData.tdsEnabled ? editFormData.tdsPercentage : undefined,
+        poNumbers: editFormData.poNumbers,
+        currentPo: editFormData.currentPo,
+        activePOs: editFormData.activePOs
+      };
+      
+      // Add GST and TDS data
+      if (editFormData.gstEnabled) {
+        Object.assign(updatedProject, {
+          gstPercentage: editFormData.customGst ? Number(editFormData.gstPercentage) : 18
+        });
+      } else {
+        Object.assign(updatedProject, {
+          gstPercentage: undefined
+        });
+      }
+      
+      if (editFormData.tdsEnabled) {
+        Object.assign(updatedProject, {
+          tdsPercentage: editFormData.customTds ? Number(editFormData.tdsPercentage) : 2
+        });
+      } else {
+        Object.assign(updatedProject, {
+          tdsPercentage: undefined
+        });
+      }
+      
+      await updateProject(project.id, updatedProject);
+      setShowEditModal(false);
+    } catch (error) {
+      console.error("Error in handleSubmitEdit:", error);
     }
-    
-    // Validate budget
-    if (!editFormData.splitBudget && !editFormData.budget) {
-      toast({
-        title: "Missing Budget",
-        description: "Please enter a total budget for the project.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (editFormData.splitBudget && (!editFormData.hardwareBudget || !editFormData.serviceBudget)) {
-      toast({
-        title: "Missing Budget Details",
-        description: "Please enter both hardware and service budgets.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Calculate the total budget when split
-    const totalBudget = editFormData.splitBudget 
-      ? Number(editFormData.hardwareBudget) + Number(editFormData.serviceBudget)
-      : Number(editFormData.budget);
-    
-    // Update project
-    const updatedProject = {
-      name: editFormData.name,
-      client: editFormData.client,
-      status: editFormData.status,
-      budget: totalBudget,
-      startDate: editFormData.startDate,
-      endDate: editFormData.endDate,
-      gstEnabled: editFormData.gstEnabled,
-      tdsEnabled: editFormData.tdsEnabled,
-      poNumbers: editFormData.poNumbers,
-      currentPo: editFormData.currentPo,
-      ...(editFormData.splitBudget && {
-        hardwareBudget: Number(editFormData.hardwareBudget),
-        serviceBudget: Number(editFormData.serviceBudget)
-      })
-    };
-    
-    // Add GST and TDS data
-    if (editFormData.gstEnabled) {
-      Object.assign(updatedProject, {
-        gstPercentage: editFormData.customGst ? Number(editFormData.gstPercentage) : 18
-      });
-    } else {
-      Object.assign(updatedProject, {
-        gstPercentage: undefined
-      });
-    }
-    
-    if (editFormData.tdsEnabled) {
-      Object.assign(updatedProject, {
-        tdsPercentage: editFormData.customTds ? Number(editFormData.tdsPercentage) : 2
-      });
-    } else {
-      Object.assign(updatedProject, {
-        tdsPercentage: undefined
-      });
-    }
-    
-    updateProject(project.id, updatedProject);
-    setShowEditModal(false);
   };
   
   const handleDeleteProject = async () => {
@@ -511,13 +485,27 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   </div>
                 )}
                 
-                {project.currentPo && (
+                {project.currentPo && !project.activePOs && (
                   <div className="flex justify-between text-sm mt-1">
                     <span className="text-muted-foreground">Active PO:</span>
                     <Badge variant="outline" className="capitalize font-normal">
                       {project.currentPo === 'hardware' ? 'Hardware PO' : 
                        project.currentPo === 'software' ? 'Software PO' : 'Combined PO'}
                     </Badge>
+                  </div>
+                )}
+                
+                {project.activePOs && project.activePOs.length > 0 && (
+                  <div className="flex justify-between text-sm mt-1">
+                    <span className="text-muted-foreground">Active POs:</span>
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {project.activePOs.map(po => (
+                        <Badge key={po} variant="outline" className="capitalize font-normal">
+                          {po === 'hardware' ? 'Hardware PO' : 
+                           po === 'software' ? 'Software PO' : 'Combined PO'}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -895,19 +883,78 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     </div>
                     
                     <div>
-                      <Label className="text-sm mb-1 block">Current Active PO</Label>
-                      <Select 
-                        value={editFormData.currentPo} 
-                        onValueChange={(value) => setEditFormData({...editFormData, currentPo: value as 'hardware' | 'software' | 'combined'})}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select active PO" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="hardware">Hardware PO</SelectItem>
-                          <SelectItem value="software">Software PO</SelectItem>
-                          <SelectItem value="combined">Combined PO</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label className="text-sm mb-1 block">Active PO(s)</Label>
+                      <div className="space-y-2">
+                        {editFormData.poNumbers?.hardware && (
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="active-hardware-po" 
+                              checked={editFormData.currentPo === 'hardware' || editFormData.activePOs?.includes('hardware')}
+                              onCheckedChange={(checked) => {
+                                const newActivePOs = editFormData.activePOs || [];
+                                if (checked) {
+                                  if (!newActivePOs.includes('hardware')) {
+                                    newActivePOs.push('hardware');
+                                  }
+                                } else {
+                                  const index = newActivePOs.indexOf('hardware');
+                                  if (index !== -1) {
+                                    newActivePOs.splice(index, 1);
+                                  }
+                                }
+                                setEditFormData({...editFormData, activePOs: newActivePOs, currentPo: undefined});
+                              }}
+                            />
+                            <Label htmlFor="active-hardware-po" className="font-normal">Hardware PO</Label>
+                          </div>
+                        )}
+                        {editFormData.poNumbers?.software && (
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="active-software-po" 
+                              checked={editFormData.currentPo === 'software' || editFormData.activePOs?.includes('software')}
+                              onCheckedChange={(checked) => {
+                                const newActivePOs = editFormData.activePOs || [];
+                                if (checked) {
+                                  if (!newActivePOs.includes('software')) {
+                                    newActivePOs.push('software');
+                                  }
+                                } else {
+                                  const index = newActivePOs.indexOf('software');
+                                  if (index !== -1) {
+                                    newActivePOs.splice(index, 1);
+                                  }
+                                }
+                                setEditFormData({...editFormData, activePOs: newActivePOs, currentPo: undefined});
+                              }}
+                            />
+                            <Label htmlFor="active-software-po" className="font-normal">Software PO</Label>
+                          </div>
+                        )}
+                        {editFormData.poNumbers?.combined && (
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="active-combined-po" 
+                              checked={editFormData.currentPo === 'combined' || editFormData.activePOs?.includes('combined')}
+                              onCheckedChange={(checked) => {
+                                const newActivePOs = editFormData.activePOs || [];
+                                if (checked) {
+                                  if (!newActivePOs.includes('combined')) {
+                                    newActivePOs.push('combined');
+                                  }
+                                } else {
+                                  const index = newActivePOs.indexOf('combined');
+                                  if (index !== -1) {
+                                    newActivePOs.splice(index, 1);
+                                  }
+                                }
+                                setEditFormData({...editFormData, activePOs: newActivePOs, currentPo: undefined});
+                              }}
+                            />
+                            <Label htmlFor="active-combined-po" className="font-normal">Combined PO</Label>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
