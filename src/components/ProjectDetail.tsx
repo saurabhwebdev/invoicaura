@@ -75,7 +75,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
         
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <Card>
+            <Card className="border-aura-blue/20">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Budget</CardTitle>
               </CardHeader>
@@ -84,7 +84,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="border-aura-blue/20">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Invoiced</CardTitle>
               </CardHeader>
@@ -94,9 +94,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   value={progress} 
                   className={cn(
                     "h-1.5 mt-2",
-                    progress > 90 ? "text-aura-red" : 
-                    progress > 75 ? "text-aura-orange" : 
-                    "text-aura-green"
+                    progress > 90 ? "bg-aura-red" : 
+                    progress > 75 ? "bg-aura-orange" : 
+                    "bg-aura-green"
                   )}
                 />
               </CardContent>
@@ -106,12 +106,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <div className="flex items-center text-sm gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Calendar className="h-4 w-4 text-aura-blue" />
                 <span className="font-medium">Start Date:</span>
                 <span>{formatDate(project.startDate)}</span>
               </div>
               <div className="flex items-center text-sm gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Calendar className="h-4 w-4 text-aura-blue" />
                 <span className="font-medium">End Date:</span>
                 <span>{formatDate(project.endDate)}</span>
               </div>
@@ -119,13 +119,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
             
             <div className="flex flex-col gap-2">
               <div className="flex items-center text-sm gap-2">
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <CreditCard className="h-4 w-4 text-aura-purple" />
                 <span className="font-medium">Invoice Count:</span>
                 <span>{project.invoiceCount}</span>
               </div>
               {project.status !== 'completed' && (
                 <div className="flex items-center text-sm gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Clock className="h-4 w-4 text-aura-orange" />
                   <span className="font-medium">Days Left:</span>
                   <span>{daysLeft > 0 ? daysLeft : 'Overdue'}</span>
                 </div>

@@ -26,11 +26,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
   const getStatusIcon = (status: string) => {
     switch(status) {
       case 'paid':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-aura-green" />;
       case 'pending':
-        return <Clock className="h-5 w-5 text-amber-500" />;
+        return <Clock className="h-5 w-5 text-aura-orange" />;
       case 'overdue':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className="h-5 w-5 text-aura-red" />;
       default:
         return null;
     }
@@ -39,13 +39,13 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'paid':
-        return 'bg-green-500/20 text-green-600 border-green-500/50';
+        return 'bg-aura-green/20 text-aura-green border-aura-green/50';
       case 'pending':
-        return 'bg-amber-500/20 text-amber-600 border-amber-500/50';
+        return 'bg-aura-orange/20 text-aura-orange border-aura-orange/50';
       case 'overdue':
-        return 'bg-red-500/20 text-red-600 border-red-500/50';
+        return 'bg-aura-red/20 text-aura-red border-aura-red/50';
       default:
-        return 'bg-slate-500/20 text-slate-600 border-slate-500/50';
+        return 'bg-aura-gray/20 text-aura-gray border-aura-gray/50';
     }
   };
   
@@ -139,7 +139,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                     variant="outline" 
                     size="sm" 
                     onClick={() => handleStatusChange('pending')}
-                    className={invoice.status === 'pending' ? 'bg-amber-500/20 border-amber-500/50' : ''}
+                    className={invoice.status === 'pending' ? 'bg-aura-orange/20 border-aura-orange/50' : ''}
                   >
                     <Clock className="h-4 w-4 mr-1" />
                     Pending
@@ -148,7 +148,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                     variant="outline" 
                     size="sm"
                     onClick={() => handleStatusChange('paid')}
-                    className={invoice.status === 'paid' ? 'bg-green-500/20 border-green-500/50' : ''}
+                    className={invoice.status === 'paid' ? 'bg-aura-green/20 border-aura-green/50' : ''}
                   >
                     <CheckCircle className="h-4 w-4 mr-1" />
                     Paid
@@ -157,7 +157,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                     variant="outline" 
                     size="sm"
                     onClick={() => handleStatusChange('overdue')}
-                    className={invoice.status === 'overdue' ? 'bg-red-500/20 border-red-500/50' : ''}
+                    className={invoice.status === 'overdue' ? 'bg-aura-red/20 border-aura-red/50' : ''}
                   >
                     <AlertCircle className="h-4 w-4 mr-1" />
                     Overdue

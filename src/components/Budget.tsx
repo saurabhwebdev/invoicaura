@@ -23,22 +23,22 @@ const Budget: React.FC<BudgetProps> = ({
   
   const getStatusColor = (percent: number) => {
     if (percent > 90) return {
-      bg: "bg-red-500/10",
-      text: "text-red-500", 
-      progressColor: "bg-red-500",
-      border: "border-red-500"
+      bg: "bg-aura-red/10",
+      text: "text-aura-red", 
+      progressColor: "bg-aura-red",
+      border: "border-aura-red"
     };
     if (percent > 75) return {
-      bg: "bg-amber-500/10", 
-      text: "text-amber-500", 
-      progressColor: "bg-amber-500",
-      border: "border-amber-500"
+      bg: "bg-aura-orange/10", 
+      text: "text-aura-orange", 
+      progressColor: "bg-aura-orange",
+      border: "border-aura-orange"
     };
     return {
-      bg: "bg-emerald-500/10", 
-      text: "text-emerald-500", 
-      progressColor: "bg-emerald-500",
-      border: "border-emerald-500"
+      bg: "bg-aura-green/10", 
+      text: "text-aura-green", 
+      progressColor: "bg-aura-green",
+      border: "border-aura-green"
     };
   };
   

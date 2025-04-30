@@ -34,14 +34,20 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, className }
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'active':
-        return 'bg-green-500/20 text-green-600 border-green-500/50';
+        return 'bg-aura-green/20 text-aura-green border-aura-green/50';
       case 'completed':
-        return 'bg-blue-500/20 text-blue-600 border-blue-500/50';
+        return 'bg-aura-blue/20 text-aura-blue border-aura-blue/50';
       case 'pending':
-        return 'bg-amber-500/20 text-amber-600 border-amber-500/50';
+        return 'bg-aura-orange/20 text-aura-orange border-aura-orange/50';
       default:
-        return 'bg-slate-500/20 text-slate-600 border-slate-500/50';
+        return 'bg-aura-gray/20 text-aura-gray border-aura-gray/50';
     }
+  };
+
+  const getProgressColor = (progress: number) => {
+    if (progress > 90) return 'bg-aura-red';
+    if (progress > 75) return 'bg-aura-orange';
+    return 'bg-aura-green';
   };
   
   return (
@@ -68,7 +74,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, className }
             <span className="text-sm text-muted-foreground">Remaining</span>
             <span className="font-medium">{formatCurrency(remaining)}</span>
           </div>
-          <Progress value={progress} className="h-2 mt-2" />
+          <Progress value={progress} className={cn("h-2 mt-2", getProgressColor(progress))} />
         </div>
         
         <div className="flex justify-between text-sm text-muted-foreground mb-1">
@@ -79,9 +85,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, className }
           <span>-</span>
           <div className="flex items-center gap-1">
             {project.status === 'completed' ? (
-              <CalendarCheck className="h-4 w-4 text-green-500" />
+              <CalendarCheck className="h-4 w-4 text-aura-green" />
             ) : new Date(project.endDate) < new Date() ? (
-              <CalendarX className="h-4 w-4 text-red-500" />
+              <CalendarX className="h-4 w-4 text-aura-red" />
             ) : (
               <Calendar className="h-4 w-4" />
             )}

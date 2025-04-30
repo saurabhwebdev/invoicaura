@@ -100,7 +100,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     <div className="space-y-8">
       <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 transition-all duration-500 ease-out ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-1">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-1 aura-text-gradient">Dashboard</h1>
           <p className="text-muted-foreground">
             Track your projects and invoices at a glance
           </p>
@@ -123,11 +123,11 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
       
       <div className={`grid gap-5 md:grid-cols-2 lg:grid-cols-4 transition-all duration-500 ease-out ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{ transitionDelay: '100ms' }}>
-        <Card className="overflow-hidden border-t-4 border-t-blue-500 shadow-sm hover:shadow-md transition-all duration-300">
+        <Card className="overflow-hidden border-t-4 border-t-aura-blue shadow-sm hover:shadow-md transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-start justify-between mb-3">
               <span className="text-sm font-medium text-muted-foreground">Total Projects</span>
-              <div className="p-2 rounded-full bg-blue-50 text-blue-500">
+              <div className="p-2 rounded-full bg-blue-50 text-aura-blue">
                 <BarChart className="h-4 w-4" />
               </div>
             </div>
@@ -135,18 +135,18 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="text-2xl font-bold">{projects.length}</div>
               {activeProjects.length > 0 && (
                 <div className="ml-2 text-xs text-muted-foreground">
-                  <span className="text-emerald-500 font-medium">{activeProjects.length} active</span>
+                  <span className="text-aura-green font-medium">{activeProjects.length} active</span>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
         
-        <Card className="overflow-hidden border-t-4 border-t-amber-500 shadow-sm hover:shadow-md transition-all duration-300">
+        <Card className="overflow-hidden border-t-4 border-t-aura-yellow shadow-sm hover:shadow-md transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-start justify-between mb-3">
               <span className="text-sm font-medium text-muted-foreground">Total Invoices</span>
-              <div className="p-2 rounded-full bg-amber-50 text-amber-500">
+              <div className="p-2 rounded-full bg-amber-50 text-aura-yellow">
                 <CreditCard className="h-4 w-4" />
               </div>
             </div>
@@ -154,7 +154,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="text-2xl font-bold">{invoices.length}</div>
               {pendingInvoices.length > 0 && (
                 <div className="ml-2 text-xs text-muted-foreground">
-                  <span className="text-amber-500 font-medium">
+                  <span className="text-aura-orange font-medium">
                     {pendingInvoices.length} pending
                   </span>
                 </div>
@@ -224,38 +224,51 @@ const Dashboard: React.FC<DashboardProps> = ({
       <Tabs defaultValue="invoices" className={`transition-all duration-500 ease-out ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{ transitionDelay: '300ms' }}>
         <TabsList className="mb-4 bg-background/60 backdrop-blur-sm">
           <TabsTrigger value="invoices" className="flex items-center gap-2 text-sm">
-            <FileText className="h-4 w-4" />
+            <FileText className="h-4 w-4 text-aura-blue" />
             Client Invoices
           </TabsTrigger>
           <TabsTrigger value="thirdParty" className="flex items-center gap-2 text-sm">
-            <Receipt className="h-4 w-4" />
+            <Receipt className="h-4 w-4 text-aura-purple" />
             Third-Party Invoices
           </TabsTrigger>
         </TabsList>
         
         <TabsContent value="invoices">
-          <InvoiceList 
-            invoices={recentInvoices} 
-            title="Recent Client Invoices"
-            onClick={handleInvoiceClick}
-            className="shadow-sm"
-          />
+          <Card className="border border-aura-blue/20 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-aura-blue">Recent Client Invoices</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <InvoiceList 
+                invoices={recentInvoices}
+                title=""
+                onClick={handleInvoiceClick}
+                className="shadow-none"
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
         
         <TabsContent value="thirdParty">
-          <InvoiceList 
-            invoices={thirdPartyInvoices} 
-            title="Third-Party Invoices"
-            onClick={handleInvoiceClick}
-            className="shadow-sm"
-          />
+          <Card className="border border-aura-purple/20 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-aura-purple">Third-Party Invoices</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <InvoiceList 
+                invoices={thirdPartyInvoices}
+                title=""
+                onClick={handleInvoiceClick}
+                className="shadow-none"
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
       
-      {/* Project Detail Dialog */}
       {selectedProject && (
         <ProjectDetail 
-          project={selectedProject}
+          project={selectedProject} 
           invoices={invoices.filter(invoice => invoice.projectId === selectedProject.id)}
           open={!!selectedProject}
           onClose={() => setSelectedProject(null)}
@@ -263,7 +276,6 @@ const Dashboard: React.FC<DashboardProps> = ({
         />
       )}
       
-      {/* Invoice Detail Dialog */}
       {selectedInvoice && (
         <InvoiceDetail 
           invoice={selectedInvoice}

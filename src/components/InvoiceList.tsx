@@ -40,13 +40,13 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'paid':
-        return 'bg-green-500/20 text-green-600 border-green-500/50';
+        return 'bg-aura-green/20 text-aura-green border-aura-green/50';
       case 'pending':
-        return 'bg-amber-500/20 text-amber-600 border-amber-500/50';
+        return 'bg-aura-orange/20 text-aura-orange border-aura-orange/50';
       case 'overdue':
-        return 'bg-red-500/20 text-red-600 border-red-500/50';
+        return 'bg-aura-red/20 text-aura-red border-aura-red/50';
       default:
-        return 'bg-slate-500/20 text-slate-600 border-slate-500/50';
+        return 'bg-aura-gray/20 text-aura-gray border-aura-gray/50';
     }
   };
   
