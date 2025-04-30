@@ -7,7 +7,7 @@ import ProjectCard from '@/components/ProjectCard';
 import { Project } from '@/lib/dbService';
 import ProjectDetail from '@/components/ProjectDetail';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, HardDrive, Wrench } from 'lucide-react';
+import { PlusCircle, HardDrive, Wrench, LayoutGrid, List, Calendar, CalendarCheck, CalendarX, CreditCard } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,13 +15,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useProjects } from '@/context/ProjectsContext';
 import { useSettings } from '@/context/SettingsContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from '@/lib/utils';
 
 const Projects = () => {
   const { toast } = useToast();
   const { projects, invoices, createProject, loading } = useProjects();
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
   const [newProject, setNewProject] = useState({
     name: '',
     client: '',
@@ -184,6 +190,26 @@ const Projects = () => {
     }
   };
 
+  // Helper functions for both views
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'active':
+        return 'bg-aura-green/20 text-aura-green border-aura-green/50';
+      case 'completed':
+        return 'bg-aura-blue/20 text-aura-blue border-aura-blue/50';
+      case 'pending':
+        return 'bg-aura-orange/20 text-aura-orange border-aura-orange/50';
+      default:
+        return 'bg-aura-gray/20 text-aura-gray border-aura-gray/50';
+    }
+  };
+
+  const getProgressColor = (progress: number) => {
+    if (progress > 90) return 'bg-aura-red';
+    if (progress > 75) return 'bg-aura-orange';
+    return 'bg-aura-green';
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -204,10 +230,20 @@ const Projects = () => {
               Manage all your client projects
             </p>
           </div>
-          <Button onClick={handleCreateProject} className="w-full md:w-auto">
-            <PlusCircle className="w-4 h-4 mr-2" />
-            New Project
-          </Button>
+          <div className="flex items-center gap-3">
+            <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'list' | 'card')}>
+              <ToggleGroupItem value="list" aria-label="List view">
+                <List className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="card" aria-label="Card view">
+                <LayoutGrid className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <Button onClick={handleCreateProject} className="w-full md:w-auto">
+              <PlusCircle className="w-4 h-4 mr-2" />
+              New Project
+            </Button>
+          </div>
         </div>
         
         <Tabs defaultValue="active">
@@ -218,30 +254,229 @@ const Projects = () => {
           </TabsList>
           
           <TabsContent value="active" className="mt-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {projects
-                .filter(project => project.status === "active")
-                .map((project, index) => (
-                  <ProjectCard 
-                    key={project.id} 
-                    project={project} 
-                    onClick={() => handleProjectClick(project)}
-                    className={`[animation-delay:${index * 100}ms]`}
-                  />
-                ))}
-              {projects.filter(project => project.status === "active").length === 0 && (
-                <div className="col-span-3 text-center py-10 text-muted-foreground">
-                  No active projects. Create a new project to get started.
-                </div>
-              )}
-            </div>
+            {viewMode === 'card' ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {projects
+                  .filter(project => project.status === "active")
+                  .map((project, index) => (
+                    <ProjectCard 
+                      key={project.id} 
+                      project={project} 
+                      onClick={() => handleProjectClick(project)}
+                      className={`[animation-delay:${index * 100}ms]`}
+                    />
+                  ))}
+                {projects.filter(project => project.status === "active").length === 0 && (
+                  <div className="col-span-3 text-center py-10 text-muted-foreground">
+                    No active projects. Create a new project to get started.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Project</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Budget</TableHead>
+                      <TableHead>Invoiced</TableHead>
+                      <TableHead>Remaining</TableHead>
+                      <TableHead>Progress</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>End Date</TableHead>
+                      <TableHead>Tax</TableHead>
+                      <TableHead>PO</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {projects
+                      .filter(project => project.status === "active")
+                      .map((project) => {
+                        const progress = project.budget ? Math.min(100, Math.round((project.invoiced / project.budget) * 100)) : 0;
+                        const remaining = project.budget - project.invoiced;
+                        return (
+                          <TableRow 
+                            key={project.id}
+                            className="cursor-pointer hover:bg-muted/80"
+                            onClick={() => handleProjectClick(project)}
+                          >
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                {project.name}
+                                <Badge variant="outline" className={cn(getStatusColor(project.status), "capitalize")}>
+                                  {project.status}
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell>{project.client}</TableCell>
+                            <TableCell>{formatCurrency(project.budget)}</TableCell>
+                            <TableCell>{formatCurrency(project.invoiced)}</TableCell>
+                            <TableCell>{formatCurrency(remaining)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Progress value={progress} className={cn("h-2 w-20", getProgressColor(progress))} />
+                                <span className="text-xs">{progress}%</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>{formatDate(project.startDate)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                {project.status === 'completed' ? (
+                                  <CalendarCheck className="h-4 w-4 text-aura-green" />
+                                ) : new Date(project.endDate) < new Date() ? (
+                                  <CalendarX className="h-4 w-4 text-aura-red" />
+                                ) : (
+                                  <Calendar className="h-4 w-4" />
+                                )}
+                                <span>{formatDate(project.endDate)}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-xs">
+                                {project.gstEnabled && <span>GST {project.gstPercentage || 18}%</span>}
+                                {project.gstEnabled && project.tdsEnabled && <span> • </span>}
+                                {project.tdsEnabled && <span>TDS {project.tdsPercentage || 2}%</span>}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {project.currentPo && project.poNumbers && project.poNumbers[project.currentPo] && (
+                                <div className="flex items-center gap-1 text-xs">
+                                  <CreditCard className="h-3 w-3" />
+                                  <span>{project.poNumbers[project.currentPo]}</span>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    {projects.filter(project => project.status === "active").length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
+                          No active projects. Create a new project to get started.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="completed" className="mt-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {projects
-                .filter(project => project.status === "completed")
-                .map((project, index) => (
+            {viewMode === 'card' ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {projects
+                  .filter(project => project.status === "completed")
+                  .map((project, index) => (
+                    <ProjectCard 
+                      key={project.id} 
+                      project={project} 
+                      onClick={() => handleProjectClick(project)}
+                      className={`[animation-delay:${index * 100}ms]`}
+                    />
+                  ))}
+                {projects.filter(project => project.status === "completed").length === 0 && (
+                  <div className="col-span-3 text-center py-10 text-muted-foreground">
+                    No completed projects yet.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Project</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Budget</TableHead>
+                      <TableHead>Invoiced</TableHead>
+                      <TableHead>Remaining</TableHead>
+                      <TableHead>Progress</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>End Date</TableHead>
+                      <TableHead>Tax</TableHead>
+                      <TableHead>PO</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {projects
+                      .filter(project => project.status === "completed")
+                      .map((project) => {
+                        const progress = project.budget ? Math.min(100, Math.round((project.invoiced / project.budget) * 100)) : 0;
+                        const remaining = project.budget - project.invoiced;
+                        return (
+                          <TableRow 
+                            key={project.id}
+                            className="cursor-pointer hover:bg-muted/80"
+                            onClick={() => handleProjectClick(project)}
+                          >
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                {project.name}
+                                <Badge variant="outline" className={cn(getStatusColor(project.status), "capitalize")}>
+                                  {project.status}
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell>{project.client}</TableCell>
+                            <TableCell>{formatCurrency(project.budget)}</TableCell>
+                            <TableCell>{formatCurrency(project.invoiced)}</TableCell>
+                            <TableCell>{formatCurrency(remaining)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Progress value={progress} className={cn("h-2 w-20", getProgressColor(progress))} />
+                                <span className="text-xs">{progress}%</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>{formatDate(project.startDate)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                {project.status === 'completed' ? (
+                                  <CalendarCheck className="h-4 w-4 text-aura-green" />
+                                ) : new Date(project.endDate) < new Date() ? (
+                                  <CalendarX className="h-4 w-4 text-aura-red" />
+                                ) : (
+                                  <Calendar className="h-4 w-4" />
+                                )}
+                                <span>{formatDate(project.endDate)}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-xs">
+                                {project.gstEnabled && <span>GST {project.gstPercentage || 18}%</span>}
+                                {project.gstEnabled && project.tdsEnabled && <span> • </span>}
+                                {project.tdsEnabled && <span>TDS {project.tdsPercentage || 2}%</span>}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {project.currentPo && project.poNumbers && project.poNumbers[project.currentPo] && (
+                                <div className="flex items-center gap-1 text-xs">
+                                  <CreditCard className="h-3 w-3" />
+                                  <span>{project.poNumbers[project.currentPo]}</span>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    {projects.filter(project => project.status === "completed").length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
+                          No completed projects yet.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="all" className="mt-4">
+            {viewMode === 'card' ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {projects.map((project, index) => (
                   <ProjectCard 
                     key={project.id} 
                     project={project} 
@@ -249,30 +484,99 @@ const Projects = () => {
                     className={`[animation-delay:${index * 100}ms]`}
                   />
                 ))}
-              {projects.filter(project => project.status === "completed").length === 0 && (
-                <div className="col-span-3 text-center py-10 text-muted-foreground">
-                  No completed projects yet.
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="all" className="mt-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project, index) => (
-                <ProjectCard 
-                  key={project.id} 
-                  project={project} 
-                  onClick={() => handleProjectClick(project)}
-                  className={`[animation-delay:${index * 100}ms]`}
-                />
-              ))}
-              {projects.length === 0 && (
-                <div className="col-span-3 text-center py-10 text-muted-foreground">
-                  No projects yet. Create a new project to get started.
-                </div>
-              )}
-            </div>
+                {projects.length === 0 && (
+                  <div className="col-span-3 text-center py-10 text-muted-foreground">
+                    No projects yet. Create a new project to get started.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Project</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Budget</TableHead>
+                      <TableHead>Invoiced</TableHead>
+                      <TableHead>Remaining</TableHead>
+                      <TableHead>Progress</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>End Date</TableHead>
+                      <TableHead>Tax</TableHead>
+                      <TableHead>PO</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {projects.map((project) => {
+                      const progress = project.budget ? Math.min(100, Math.round((project.invoiced / project.budget) * 100)) : 0;
+                      const remaining = project.budget - project.invoiced;
+                      return (
+                        <TableRow 
+                          key={project.id}
+                          className="cursor-pointer hover:bg-muted/80"
+                          onClick={() => handleProjectClick(project)}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {project.name}
+                              <Badge variant="outline" className={cn(getStatusColor(project.status), "capitalize")}>
+                                {project.status}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>{project.client}</TableCell>
+                          <TableCell>{formatCurrency(project.budget)}</TableCell>
+                          <TableCell>{formatCurrency(project.invoiced)}</TableCell>
+                          <TableCell>{formatCurrency(remaining)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Progress value={progress} className={cn("h-2 w-20", getProgressColor(progress))} />
+                              <span className="text-xs">{progress}%</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{formatDate(project.startDate)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {project.status === 'completed' ? (
+                                <CalendarCheck className="h-4 w-4 text-aura-green" />
+                              ) : new Date(project.endDate) < new Date() ? (
+                                <CalendarX className="h-4 w-4 text-aura-red" />
+                              ) : (
+                                <Calendar className="h-4 w-4" />
+                              )}
+                              <span>{formatDate(project.endDate)}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-xs">
+                              {project.gstEnabled && <span>GST {project.gstPercentage || 18}%</span>}
+                              {project.gstEnabled && project.tdsEnabled && <span> • </span>}
+                              {project.tdsEnabled && <span>TDS {project.tdsPercentage || 2}%</span>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {project.currentPo && project.poNumbers && project.poNumbers[project.currentPo] && (
+                              <div className="flex items-center gap-1 text-xs">
+                                <CreditCard className="h-3 w-3" />
+                                <span>{project.poNumbers[project.currentPo]}</span>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {projects.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
+                          No projects yet. Create a new project to get started.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
