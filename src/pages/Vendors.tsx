@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Pencil, Trash2, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useSettings } from '@/context/SettingsContext';
 import { vendorService } from '@/lib/dbService';
 import { 
   Dialog, 
@@ -59,6 +60,7 @@ interface Vendor {
 const Vendors = () => {
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const { formatCurrency } = useSettings();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showVendorDialog, setShowVendorDialog] = useState(false);
@@ -239,6 +241,7 @@ const Vendors = () => {
               vendors={vendors} 
               onEdit={handleOpenEditDialog} 
               onDelete={(id) => setConfirmDelete(id)} 
+              formatCurrency={formatCurrency}
             />
           </TabsContent>
           
@@ -247,6 +250,7 @@ const Vendors = () => {
               vendors={vendors.filter(v => v.status === 'active')} 
               onEdit={handleOpenEditDialog} 
               onDelete={(id) => setConfirmDelete(id)} 
+              formatCurrency={formatCurrency}
             />
           </TabsContent>
           
@@ -255,6 +259,7 @@ const Vendors = () => {
               vendors={vendors.filter(v => v.status === 'inactive')} 
               onEdit={handleOpenEditDialog} 
               onDelete={(id) => setConfirmDelete(id)} 
+              formatCurrency={formatCurrency}
             />
           </TabsContent>
         </Tabs>
@@ -356,9 +361,10 @@ interface VendorTableProps {
   vendors: Vendor[];
   onEdit: (vendor: Vendor) => void;
   onDelete: (id: string) => void;
+  formatCurrency: (amount: number) => string;
 }
 
-const VendorTable = ({ vendors, onEdit, onDelete }: VendorTableProps) => {
+const VendorTable = ({ vendors, onEdit, onDelete, formatCurrency }: VendorTableProps) => {
   return (
     <Card>
       <CardHeader>
@@ -391,7 +397,7 @@ const VendorTable = ({ vendors, onEdit, onDelete }: VendorTableProps) => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    ${vendor.totalInvoiced.toFixed(2)}
+                    {formatCurrency(vendor.totalInvoiced)}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
