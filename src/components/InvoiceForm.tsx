@@ -383,7 +383,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-muted-foreground">Hardware Budget:</span>
-                    <div className="font-medium">${selectedProject.hardwareBudget?.toLocaleString()}</div>
+                    <div className="font-medium">{formatCurrency(selectedProject.hardwareBudget || 0)}</div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Remaining:</span>
@@ -398,7 +398,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-muted-foreground">Service Budget:</span>
-                    <div className="font-medium">${selectedProject.serviceBudget?.toLocaleString()}</div>
+                    <div className="font-medium">{formatCurrency(selectedProject.serviceBudget || 0)}</div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Remaining:</span>
@@ -486,7 +486,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
           )}
           
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount ($)</Label>
+            <Label htmlFor="amount">Amount</Label>
             <Input
               id="amount"
               name="amount"
