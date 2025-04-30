@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from '@/lib/utils';
-import { CalendarCheck, CalendarX, Calendar } from 'lucide-react';
+import { CalendarCheck, CalendarX, Calendar, CreditCard } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
 export interface Project {
@@ -25,6 +25,12 @@ export interface Project {
   gstPercentage?: number;
   tdsEnabled?: boolean;
   tdsPercentage?: number;
+  poNumbers?: {
+    hardware?: string;
+    software?: string;
+    combined?: string;
+  };
+  currentPo?: 'hardware' | 'software' | 'combined';
 }
 
 interface ProjectCardProps {
@@ -114,6 +120,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, className }
             {project.gstEnabled && <span>GST {project.gstPercentage || 18}%</span>}
             {project.gstEnabled && project.tdsEnabled && <span>•</span>}
             {project.tdsEnabled && <span>TDS {project.tdsPercentage || 2}%</span>}
+          </div>
+        )}
+        {/* PO Info */}
+        {project.currentPo && project.poNumbers && project.poNumbers[project.currentPo] && (
+          <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <span>•</span>
+            <CreditCard className="h-3 w-3" />
+            <span>PO: {project.poNumbers[project.currentPo]}</span>
           </div>
         )}
       </CardContent>

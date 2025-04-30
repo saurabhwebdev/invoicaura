@@ -33,6 +33,12 @@ export interface Project {
   gstPercentage?: number; // Default 18%
   tdsEnabled?: boolean;
   tdsPercentage?: number; // Default 2%
+  poNumbers?: {
+    hardware?: string;
+    software?: string;
+    combined?: string;
+  };
+  currentPo?: 'hardware' | 'software' | 'combined';
   userId: string;
   createdAt?: any;
   updatedAt?: any;
@@ -49,6 +55,7 @@ export interface Invoice {
   description: string;
   status: 'paid' | 'pending' | 'overdue' | 'cancelled';
   type?: 'hardware' | 'service';
+  poNumber?: string;
   userId: string;
   thirdParty?: {
     company: string;

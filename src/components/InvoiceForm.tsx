@@ -20,6 +20,12 @@ interface InvoiceFormProps {
     serviceBudget?: number;
     hardwareInvoiced?: number;
     serviceInvoiced?: number;
+    poNumbers?: {
+      hardware?: string;
+      software?: string;
+      combined?: string;
+    };
+    currentPo?: 'hardware' | 'software' | 'combined';
   }>;
   onSubmit: (invoice: any) => void;
   className?: string;
@@ -43,15 +49,40 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     invoiceNumber: '',
     description: '',
     date: new Date().toISOString().split('T')[0],
-    type: 'service' as 'hardware' | 'service' | undefined
+    type: 'service' as 'hardware' | 'service' | undefined,
+    poNumber: '' as string
   });
   
   // Update formData if selectedProjectId changes
   useEffect(() => {
     if (selectedProjectId) {
-      setFormData(prev => ({ ...prev, projectId: selectedProjectId }));
+      const project = projects.find(p => p.id === selectedProjectId);
+      let poNumber = '';
+      
+      // Set default PO based on current project PO setting
+      if (project?.poNumbers) {
+        if (project.currentPo === 'hardware' && project.poNumbers.hardware) {
+          poNumber = project.poNumbers.hardware;
+        } else if (project.currentPo === 'software' && project.poNumbers.software) {
+          poNumber = project.poNumbers.software;
+        } else if (project.currentPo === 'combined' && project.poNumbers.combined) {
+          poNumber = project.poNumbers.combined;
+        } else if (project.poNumbers.combined) {
+          poNumber = project.poNumbers.combined;
+        } else if (project.poNumbers.hardware) {
+          poNumber = project.poNumbers.hardware;
+        } else if (project.poNumbers.software) {
+          poNumber = project.poNumbers.software;
+        }
+      }
+      
+      setFormData(prev => ({ 
+        ...prev, 
+        projectId: selectedProjectId,
+        poNumber: poNumber 
+      }));
     }
-  }, [selectedProjectId]);
+  }, [selectedProjectId, projects]);
   
   const selectedProject = projects.find(p => p.id === formData.projectId);
   const remainingBudget = selectedProject ? selectedProject.budget - selectedProject.invoiced : 0;
@@ -82,11 +113,49 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
   };
   
   const handleSelectProject = (value: string) => {
-    setFormData({ ...formData, projectId: value });
+    const project = projects.find(p => p.id === value);
+    let poNumber = '';
+    
+    // Set default PO based on current project PO setting
+    if (project?.poNumbers) {
+      if (project.currentPo === 'hardware' && project.poNumbers.hardware) {
+        poNumber = project.poNumbers.hardware;
+      } else if (project.currentPo === 'software' && project.poNumbers.software) {
+        poNumber = project.poNumbers.software;
+      } else if (project.currentPo === 'combined' && project.poNumbers.combined) {
+        poNumber = project.poNumbers.combined;
+      } else if (project.poNumbers.combined) {
+        poNumber = project.poNumbers.combined;
+      } else if (project.poNumbers.hardware) {
+        poNumber = project.poNumbers.hardware;
+      } else if (project.poNumbers.software) {
+        poNumber = project.poNumbers.software;
+      }
+    }
+    
+    setFormData({ 
+      ...formData, 
+      projectId: value,
+      poNumber
+    });
   };
 
   const handleSelectType = (value: string) => {
-    setFormData({ ...formData, type: value as 'hardware' | 'service' });
+    const type = value as 'hardware' | 'service';
+    let poNumber = '';
+    
+    // If the project has PO numbers, select the appropriate one based on type
+    if (selectedProject?.poNumbers) {
+      if (type === 'hardware' && selectedProject.poNumbers.hardware) {
+        poNumber = selectedProject.poNumbers.hardware;
+      } else if (type === 'service' && selectedProject.poNumbers.software) {
+        poNumber = selectedProject.poNumbers.software;
+      } else if (selectedProject.poNumbers.combined) {
+        poNumber = selectedProject.poNumbers.combined;
+      }
+    }
+    
+    setFormData({ ...formData, type, poNumber });
   };
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -126,7 +195,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       ...formData,
       amount: Number(formData.amount),
       date: formData.date,
-      status: 'pending'
+      status: 'pending',
+      poNumber: formData.poNumber
     };
     
     onSubmit(newInvoice);
@@ -141,7 +211,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       invoiceNumber: '',
       description: '',
       date: new Date().toISOString().split('T')[0],
-      type: 'service'
+      type: 'service',
+      poNumber: ''
     });
     
     setOpen(false);
@@ -270,6 +341,27 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   </Label>
                 </div>
               </RadioGroup>
+            </div>
+          )}
+          
+          {selectedProject?.poNumbers && (
+            <div className="space-y-2">
+              <Label htmlFor="poNumber">Purchase Order Number</Label>
+              <Input
+                id="poNumber"
+                name="poNumber"
+                value={formData.poNumber}
+                onChange={handleChange}
+                placeholder="PO Number"
+                readOnly={!!formData.poNumber} // Make read-only if auto-selected
+                className={!!formData.poNumber ? "bg-muted cursor-not-allowed" : ""}
+              />
+              {!!formData.poNumber && (
+                <p className="text-xs text-muted-foreground">
+                  Using {formData.type === 'hardware' ? 'Hardware' : 
+                         formData.type === 'service' ? 'Software' : 'Combined'} PO
+                </p>
+              )}
             </div>
           )}
           

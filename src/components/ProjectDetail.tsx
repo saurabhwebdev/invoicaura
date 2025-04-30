@@ -53,7 +53,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
     customGst: project.gstPercentage !== undefined && project.gstPercentage !== 18,
     tdsEnabled: project.tdsEnabled || false,
     tdsPercentage: project.tdsPercentage || 2,
-    customTds: project.tdsPercentage !== undefined && project.tdsPercentage !== 2
+    customTds: project.tdsPercentage !== undefined && project.tdsPercentage !== 2,
+    poNumbers: project.poNumbers || {
+      hardware: '',
+      software: '',
+      combined: ''
+    },
+    currentPo: project.currentPo || undefined
   });
   
   // Filter invoices for this project
@@ -115,7 +121,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
       customGst: project.gstPercentage !== undefined && project.gstPercentage !== 18,
       tdsEnabled: project.tdsEnabled || false,
       tdsPercentage: project.tdsPercentage || 2,
-      customTds: project.tdsPercentage !== undefined && project.tdsPercentage !== 2
+      customTds: project.tdsPercentage !== undefined && project.tdsPercentage !== 2,
+      poNumbers: project.poNumbers || {
+        hardware: '',
+        software: '',
+        combined: ''
+      },
+      currentPo: project.currentPo
     });
     setShowEditModal(true);
   };
@@ -165,6 +177,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
       endDate: editFormData.endDate,
       gstEnabled: editFormData.gstEnabled,
       tdsEnabled: editFormData.tdsEnabled,
+      poNumbers: editFormData.poNumbers,
+      currentPo: editFormData.currentPo,
       ...(editFormData.splitBudget && {
         hardwareBudget: Number(editFormData.hardwareBudget),
         serviceBudget: Number(editFormData.serviceBudget)
@@ -463,6 +477,47 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">TDS Rate:</span>
                     <span className="font-medium">{project.tdsPercentage || 2}%</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* PO Information */}
+          {project.poNumbers && (
+            <div className="space-y-3 mt-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <CreditCard className="h-4 w-4" /> Purchase Order Information
+              </h4>
+              <div className="grid gap-2">
+                {project.poNumbers.hardware && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Hardware PO:</span>
+                    <span className="font-medium">{project.poNumbers.hardware}</span>
+                  </div>
+                )}
+                
+                {project.poNumbers.software && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Software PO:</span>
+                    <span className="font-medium">{project.poNumbers.software}</span>
+                  </div>
+                )}
+                
+                {project.poNumbers.combined && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Combined PO:</span>
+                    <span className="font-medium">{project.poNumbers.combined}</span>
+                  </div>
+                )}
+                
+                {project.currentPo && (
+                  <div className="flex justify-between text-sm mt-1">
+                    <span className="text-muted-foreground">Active PO:</span>
+                    <Badge variant="outline" className="capitalize font-normal">
+                      {project.currentPo === 'hardware' ? 'Hardware PO' : 
+                       project.currentPo === 'software' ? 'Software PO' : 'Combined PO'}
+                    </Badge>
                   </div>
                 )}
               </div>
@@ -802,6 +857,61 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   )}
                 </>
               )}
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <div className="text-right">
+                  <Label>Purchase Orders</Label>
+                </div>
+                <div className="col-span-3">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-hardware-po" className="text-sm mb-1 block">Hardware PO</Label>
+                      <Input
+                        id="edit-hardware-po"
+                        value={editFormData.poNumbers?.hardware || ''}
+                        onChange={(e) => setEditFormData({...editFormData, poNumbers: {...editFormData.poNumbers, hardware: e.target.value}})}
+                        placeholder="Hardware PO number"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="edit-software-po" className="text-sm mb-1 block">Software PO</Label>
+                      <Input
+                        id="edit-software-po"
+                        value={editFormData.poNumbers?.software || ''}
+                        onChange={(e) => setEditFormData({...editFormData, poNumbers: {...editFormData.poNumbers, software: e.target.value}})}
+                        placeholder="Software PO number"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="edit-combined-po" className="text-sm mb-1 block">Combined PO</Label>
+                      <Input
+                        id="edit-combined-po"
+                        value={editFormData.poNumbers?.combined || ''}
+                        onChange={(e) => setEditFormData({...editFormData, poNumbers: {...editFormData.poNumbers, combined: e.target.value}})}
+                        placeholder="Combined PO number"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm mb-1 block">Current Active PO</Label>
+                      <Select 
+                        value={editFormData.currentPo} 
+                        onValueChange={(value) => setEditFormData({...editFormData, currentPo: value as 'hardware' | 'software' | 'combined'})}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select active PO" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hardware">Hardware PO</SelectItem>
+                          <SelectItem value="software">Software PO</SelectItem>
+                          <SelectItem value="combined">Combined PO</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             
             <DialogFooter>

@@ -39,6 +39,7 @@ import { useProjects } from '@/context/ProjectsContext';
 import InvoiceForm from "@/components/InvoiceForm";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSettings } from '@/context/SettingsContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface SidebarNavProps {
   className?: string;
@@ -65,7 +66,13 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
     customGst: false,
     tdsEnabled: false,
     tdsPercentage: 2,
-    customTds: false
+    customTds: false,
+    poNumbers: {
+      hardware: '',
+      software: '',
+      combined: ''
+    },
+    currentPo: undefined as 'hardware' | 'software' | 'combined' | undefined
   });
   const { formatCurrency } = useSettings();
   
@@ -160,7 +167,9 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       endDate: newProject.endDate,
       status: "active" as 'active' | 'completed' | 'pending',
       gstEnabled: newProject.gstEnabled,
-      tdsEnabled: newProject.tdsEnabled
+      tdsEnabled: newProject.tdsEnabled,
+      poNumbers: newProject.poNumbers,
+      currentPo: newProject.currentPo
     };
     
     // Add split budget data if enabled
@@ -205,7 +214,13 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       customGst: false,
       tdsEnabled: false,
       tdsPercentage: 2,
-      customTds: false
+      customTds: false,
+      poNumbers: {
+        hardware: '',
+        software: '',
+        combined: ''
+      },
+      currentPo: undefined
     });
   };
 
@@ -677,6 +692,74 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
                 )}
               </>
             )}
+
+            {/* PO Information Section */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div className="text-right">
+                <Label>Purchase Orders</Label>
+              </div>
+              <div className="col-span-3">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="projectHardwarePo" className="text-sm mb-1 block">Hardware PO</Label>
+                    <Input
+                      id="projectHardwarePo"
+                      value={newProject.poNumbers.hardware}
+                      onChange={(e) => setNewProject({
+                        ...newProject, 
+                        poNumbers: {...newProject.poNumbers, hardware: e.target.value}
+                      })}
+                      placeholder="Hardware PO number"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="projectSoftwarePo" className="text-sm mb-1 block">Software PO</Label>
+                    <Input
+                      id="projectSoftwarePo"
+                      value={newProject.poNumbers.software}
+                      onChange={(e) => setNewProject({
+                        ...newProject, 
+                        poNumbers: {...newProject.poNumbers, software: e.target.value}
+                      })}
+                      placeholder="Software PO number"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="projectCombinedPo" className="text-sm mb-1 block">Combined PO</Label>
+                    <Input
+                      id="projectCombinedPo"
+                      value={newProject.poNumbers.combined}
+                      onChange={(e) => setNewProject({
+                        ...newProject, 
+                        poNumbers: {...newProject.poNumbers, combined: e.target.value}
+                      })}
+                      placeholder="Combined PO number"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="projectCurrentPo" className="text-sm mb-1 block">Current Active PO</Label>
+                    <Select 
+                      value={newProject.currentPo} 
+                      onValueChange={(value) => setNewProject({
+                        ...newProject, 
+                        currentPo: value as 'hardware' | 'software' | 'combined'
+                      })}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select active PO" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hardware">Hardware PO</SelectItem>
+                        <SelectItem value="software">Software PO</SelectItem>
+                        <SelectItem value="combined">Combined PO</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           
           <DialogFooter>
