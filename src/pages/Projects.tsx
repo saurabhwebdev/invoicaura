@@ -28,7 +28,13 @@ const Projects = () => {
     endDate: '',
     splitBudget: false,
     hardwareBudget: 0,
-    serviceBudget: 0
+    serviceBudget: 0,
+    gstEnabled: false,
+    gstPercentage: 18,
+    customGst: false,
+    tdsEnabled: false,
+    tdsPercentage: 2,
+    customTds: false
   });
 
   const handleCreateProject = () => {
@@ -70,22 +76,43 @@ const Projects = () => {
       ? Number(newProject.hardwareBudget) + Number(newProject.serviceBudget)
       : Number(newProject.budget);
     
-    // Create new project
-    createProject({
+    // Create project data
+    const projectData = {
       name: newProject.name,
       client: newProject.client,
       budget: totalBudget,
       startDate: newProject.startDate,
       endDate: newProject.endDate,
-      status: "active",
-      ...(newProject.splitBudget && {
+      status: "active" as 'active' | 'completed' | 'pending',
+      gstEnabled: newProject.gstEnabled,
+      tdsEnabled: newProject.tdsEnabled
+    };
+    
+    // Add split budget data if enabled
+    if (newProject.splitBudget) {
+      Object.assign(projectData, {
         hardwareBudget: Number(newProject.hardwareBudget),
         serviceBudget: Number(newProject.serviceBudget),
         hardwareInvoiced: 0,
         serviceInvoiced: 0
-      })
-    });
+      });
+    }
     
+    // Add GST and TDS data if enabled
+    if (newProject.gstEnabled) {
+      Object.assign(projectData, {
+        gstPercentage: newProject.customGst ? Number(newProject.gstPercentage) : 18
+      });
+    }
+    
+    if (newProject.tdsEnabled) {
+      Object.assign(projectData, {
+        tdsPercentage: newProject.customTds ? Number(newProject.tdsPercentage) : 2
+      });
+    }
+    
+    // Create the project
+    createProject(projectData);
     setShowNewProjectDialog(false);
     
     // Reset form
@@ -97,7 +124,13 @@ const Projects = () => {
       endDate: '',
       splitBudget: false,
       hardwareBudget: 0,
-      serviceBudget: 0
+      serviceBudget: 0,
+      gstEnabled: false,
+      gstPercentage: 18,
+      customGst: false,
+      tdsEnabled: false,
+      tdsPercentage: 2,
+      customTds: false
     });
   };
   
@@ -374,6 +407,162 @@ const Projects = () => {
                 className="col-span-3"
               />
             </div>
+
+            {/* GST Section */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div className="text-right">
+                <Label htmlFor="projectGSTEnabled">GST</Label>
+              </div>
+              <div className="col-span-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="projectGSTEnabled" 
+                    checked={newProject.gstEnabled}
+                    onCheckedChange={(checked) => setNewProject({...newProject, gstEnabled: !!checked})}
+                  />
+                  <Label htmlFor="projectGSTEnabled" className="font-normal cursor-pointer">
+                    Enable GST
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            {newProject.gstEnabled && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="text-right">
+                    <Label htmlFor="projectCustomGST">GST Rate</Label>
+                  </div>
+                  <div className="col-span-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="projectCustomGST" 
+                        checked={newProject.customGst}
+                        onCheckedChange={(checked) => {
+                          const isCustom = !!checked;
+                          setNewProject({
+                            ...newProject, 
+                            customGst: isCustom,
+                            gstPercentage: isCustom ? newProject.gstPercentage : 18
+                          });
+                        }}
+                      />
+                      <Label htmlFor="projectCustomGST" className="font-normal cursor-pointer">
+                        Custom GST rate
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                {newProject.customGst ? (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="projectGSTPercentage" className="text-right">
+                      GST Percentage
+                    </Label>
+                    <div className="col-span-3 flex items-center">
+                      <Input
+                        id="projectGSTPercentage"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={newProject.gstPercentage}
+                        onChange={(e) => setNewProject({...newProject, gstPercentage: Number(e.target.value)})}
+                        className="flex-1"
+                      />
+                      <span className="ml-2">%</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <div className="text-right">
+                      <Label>Standard Rate</Label>
+                    </div>
+                    <div className="col-span-3 text-muted-foreground">
+                      18% GST
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* TDS Section */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div className="text-right">
+                <Label htmlFor="projectTDSEnabled">TDS</Label>
+              </div>
+              <div className="col-span-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="projectTDSEnabled" 
+                    checked={newProject.tdsEnabled}
+                    onCheckedChange={(checked) => setNewProject({...newProject, tdsEnabled: !!checked})}
+                  />
+                  <Label htmlFor="projectTDSEnabled" className="font-normal cursor-pointer">
+                    Enable TDS
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            {newProject.tdsEnabled && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="text-right">
+                    <Label htmlFor="projectCustomTDS">TDS Rate</Label>
+                  </div>
+                  <div className="col-span-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="projectCustomTDS" 
+                        checked={newProject.customTds}
+                        onCheckedChange={(checked) => {
+                          const isCustom = !!checked;
+                          setNewProject({
+                            ...newProject, 
+                            customTds: isCustom,
+                            tdsPercentage: isCustom ? newProject.tdsPercentage : 2
+                          });
+                        }}
+                      />
+                      <Label htmlFor="projectCustomTDS" className="font-normal cursor-pointer">
+                        Custom TDS rate
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                {newProject.customTds ? (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="projectTDSPercentage" className="text-right">
+                      TDS Percentage
+                    </Label>
+                    <div className="col-span-3 flex items-center">
+                      <Input
+                        id="projectTDSPercentage"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={newProject.tdsPercentage}
+                        onChange={(e) => setNewProject({...newProject, tdsPercentage: Number(e.target.value)})}
+                        className="flex-1"
+                      />
+                      <span className="ml-2">%</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <div className="text-right">
+                      <Label>Standard Rate</Label>
+                    </div>
+                    <div className="col-span-3 text-muted-foreground">
+                      2% TDS
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
           
           <DialogFooter>

@@ -21,6 +21,10 @@ export interface Project {
   serviceBudget?: number;
   hardwareInvoiced?: number;
   serviceInvoiced?: number;
+  gstEnabled?: boolean;
+  gstPercentage?: number;
+  tdsEnabled?: boolean;
+  tdsPercentage?: number;
 }
 
 interface ProjectCardProps {
@@ -103,6 +107,15 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, className }
             <span>{formatDate(project.endDate)}</span>
           </div>
         </div>
+        {/* Tax Info */}
+        {(project.gstEnabled || project.tdsEnabled) && (
+          <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <span>•</span>
+            {project.gstEnabled && <span>GST {project.gstPercentage || 18}%</span>}
+            {project.gstEnabled && project.tdsEnabled && <span>•</span>}
+            {project.tdsEnabled && <span>TDS {project.tdsPercentage || 2}%</span>}
+          </div>
+        )}
       </CardContent>
       <CardFooter className="p-4 pt-2 flex justify-between">
         <span className="text-sm">{project.invoiceCount} invoice{project.invoiceCount !== 1 ? 's' : ''}</span>

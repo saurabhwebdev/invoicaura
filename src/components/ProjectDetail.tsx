@@ -47,7 +47,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
     endDate: project.endDate,
     splitBudget: project.hardwareBudget !== undefined,
     hardwareBudget: project.hardwareBudget || 0,
-    serviceBudget: project.serviceBudget || 0
+    serviceBudget: project.serviceBudget || 0,
+    gstEnabled: project.gstEnabled || false,
+    gstPercentage: project.gstPercentage || 18,
+    customGst: project.gstPercentage !== undefined && project.gstPercentage !== 18,
+    tdsEnabled: project.tdsEnabled || false,
+    tdsPercentage: project.tdsPercentage || 2,
+    customTds: project.tdsPercentage !== undefined && project.tdsPercentage !== 2
   });
   
   // Filter invoices for this project
@@ -103,7 +109,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
       endDate: project.endDate,
       splitBudget: project.hardwareBudget !== undefined,
       hardwareBudget: project.hardwareBudget || 0,
-      serviceBudget: project.serviceBudget || 0
+      serviceBudget: project.serviceBudget || 0,
+      gstEnabled: project.gstEnabled || false,
+      gstPercentage: project.gstPercentage || 18,
+      customGst: project.gstPercentage !== undefined && project.gstPercentage !== 18,
+      tdsEnabled: project.tdsEnabled || false,
+      tdsPercentage: project.tdsPercentage || 2,
+      customTds: project.tdsPercentage !== undefined && project.tdsPercentage !== 2
     });
     setShowEditModal(true);
   };
@@ -151,11 +163,34 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
       budget: totalBudget,
       startDate: editFormData.startDate,
       endDate: editFormData.endDate,
+      gstEnabled: editFormData.gstEnabled,
+      tdsEnabled: editFormData.tdsEnabled,
       ...(editFormData.splitBudget && {
         hardwareBudget: Number(editFormData.hardwareBudget),
         serviceBudget: Number(editFormData.serviceBudget)
       })
     };
+    
+    // Add GST and TDS data
+    if (editFormData.gstEnabled) {
+      Object.assign(updatedProject, {
+        gstPercentage: editFormData.customGst ? Number(editFormData.gstPercentage) : 18
+      });
+    } else {
+      Object.assign(updatedProject, {
+        gstPercentage: undefined
+      });
+    }
+    
+    if (editFormData.tdsEnabled) {
+      Object.assign(updatedProject, {
+        tdsPercentage: editFormData.customTds ? Number(editFormData.tdsPercentage) : 2
+      });
+    } else {
+      Object.assign(updatedProject, {
+        tdsPercentage: undefined
+      });
+    }
     
     updateProject(project.id, updatedProject);
     setShowEditModal(false);
@@ -411,6 +446,28 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </TabsContent>
             </Tabs>
           </div>
+          
+          {/* Tax Information */}
+          {(project.gstEnabled || project.tdsEnabled) && (
+            <div className="space-y-3 mt-4">
+              <h4 className="text-sm font-semibold">Tax Information</h4>
+              <div className="grid gap-2">
+                {project.gstEnabled && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">GST Rate:</span>
+                    <span className="font-medium">{project.gstPercentage || 18}%</span>
+                  </div>
+                )}
+                
+                {project.tdsEnabled && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">TDS Rate:</span>
+                    <span className="font-medium">{project.tdsPercentage || 2}%</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Invoice Form Modal */}
@@ -579,6 +636,172 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   className="col-span-3"
                 />
               </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <div className="text-right">
+                  <Label htmlFor="edit-gst-enabled">GST</Label>
+                </div>
+                <div className="col-span-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="edit-gst-enabled" 
+                      checked={editFormData.gstEnabled}
+                      onCheckedChange={(checked) => setEditFormData({...editFormData, gstEnabled: !!checked})}
+                    />
+                    <label
+                      htmlFor="edit-gst-enabled"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Enable GST
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {editFormData.gstEnabled && (
+                <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <div className="text-right">
+                      <Label>GST Rate</Label>
+                    </div>
+                    <div className="col-span-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="edit-custom-gst" 
+                          checked={editFormData.customGst}
+                          onCheckedChange={(checked) => {
+                            const isCustom = !!checked;
+                            setEditFormData({
+                              ...editFormData, 
+                              customGst: isCustom,
+                              gstPercentage: isCustom ? editFormData.gstPercentage : 18
+                            });
+                          }}
+                        />
+                        <label
+                          htmlFor="edit-custom-gst"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Custom GST rate
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {editFormData.customGst ? (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="edit-gst-percentage" className="text-right">
+                        GST Percentage
+                      </Label>
+                      <div className="col-span-3 flex items-center">
+                        <Input
+                          id="edit-gst-percentage"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={editFormData.gstPercentage}
+                          onChange={(e) => setEditFormData({...editFormData, gstPercentage: Number(e.target.value)})}
+                          className="flex-1"
+                        />
+                        <span className="ml-2">%</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <div className="text-right">
+                        <Label>Standard Rate</Label>
+                      </div>
+                      <div className="col-span-3 text-muted-foreground">
+                        18% GST
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <div className="text-right">
+                  <Label htmlFor="edit-tds-enabled">TDS</Label>
+                </div>
+                <div className="col-span-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="edit-tds-enabled" 
+                      checked={editFormData.tdsEnabled}
+                      onCheckedChange={(checked) => setEditFormData({...editFormData, tdsEnabled: !!checked})}
+                    />
+                    <label
+                      htmlFor="edit-tds-enabled"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Enable TDS
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {editFormData.tdsEnabled && (
+                <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <div className="text-right">
+                      <Label>TDS Rate</Label>
+                    </div>
+                    <div className="col-span-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="edit-custom-tds" 
+                          checked={editFormData.customTds}
+                          onCheckedChange={(checked) => {
+                            const isCustom = !!checked;
+                            setEditFormData({
+                              ...editFormData, 
+                              customTds: isCustom,
+                              tdsPercentage: isCustom ? editFormData.tdsPercentage : 2
+                            });
+                          }}
+                        />
+                        <label
+                          htmlFor="edit-custom-tds"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Custom TDS rate
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {editFormData.customTds ? (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="edit-tds-percentage" className="text-right">
+                        TDS Percentage
+                      </Label>
+                      <div className="col-span-3 flex items-center">
+                        <Input
+                          id="edit-tds-percentage"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={editFormData.tdsPercentage}
+                          onChange={(e) => setEditFormData({...editFormData, tdsPercentage: Number(e.target.value)})}
+                          className="flex-1"
+                        />
+                        <span className="ml-2">%</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <div className="text-right">
+                        <Label>Standard Rate</Label>
+                      </div>
+                      <div className="col-span-3 text-muted-foreground">
+                        2% TDS
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
             
             <DialogFooter>

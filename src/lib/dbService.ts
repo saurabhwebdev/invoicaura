@@ -29,6 +29,10 @@ export interface Project {
   serviceBudget?: number;
   hardwareInvoiced?: number;
   serviceInvoiced?: number;
+  gstEnabled?: boolean;
+  gstPercentage?: number; // Default 18%
+  tdsEnabled?: boolean;
+  tdsPercentage?: number; // Default 2%
   userId: string;
   createdAt?: any;
   updatedAt?: any;
