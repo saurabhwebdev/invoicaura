@@ -21,9 +21,14 @@ const Invoices = () => {
     setSelectedInvoice(invoice);
   };
   
-  const handleStatusChange = (invoiceId: string, newStatus: 'paid' | 'pending' | 'overdue') => {
-    updateInvoiceStatus(invoiceId, newStatus);
-    setSelectedInvoice(null);
+  const handleStatusChange = async (invoiceId: string, newStatus: 'paid' | 'pending' | 'overdue') => {
+    try {
+      await updateInvoiceStatus(invoiceId, newStatus);
+      setSelectedInvoice(null);
+    } catch (error) {
+      console.error("Error in Invoices page when updating invoice status:", error);
+      // Toast is already shown by the ProjectsContext
+    }
   };
 
   const handleCreateInvoice = (newInvoice: any) => {

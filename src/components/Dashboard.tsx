@@ -84,17 +84,23 @@ const Dashboard: React.FC<DashboardProps> = ({
     });
   };
   
-  const handleInvoiceStatusChange = (invoiceId: string, newStatus: 'paid' | 'pending' | 'overdue') => {
+  const handleInvoiceStatusChange = async (invoiceId: string, newStatus: 'paid' | 'pending' | 'overdue') => {
     if (onUpdateInvoiceStatus) {
-      onUpdateInvoiceStatus(invoiceId, newStatus);
+      try {
+        await onUpdateInvoiceStatus(invoiceId, newStatus);
+        setSelectedInvoice(null);
+        
+        toast({
+          title: "Invoice Updated",
+          description: `Invoice status changed to ${newStatus}`,
+        });
+      } catch (error) {
+        console.error("Error in dashboard when updating invoice status:", error);
+        // Toast is already shown by the ProjectsContext
+      }
+    } else {
+      setSelectedInvoice(null);
     }
-    
-    setSelectedInvoice(null);
-    
-    toast({
-      title: "Invoice Updated",
-      description: `Invoice status changed to ${newStatus}`,
-    });
   };
 
   return (

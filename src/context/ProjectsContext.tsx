@@ -14,7 +14,7 @@ interface ProjectsContextType {
   deleteProject: (projectId: string) => Promise<void>;
   createInvoice: (invoiceData: any) => Promise<void>;
   createThirdPartyInvoice: (thirdPartyData: any) => Promise<void>;
-  updateInvoiceStatus: (invoiceId: string, status: 'paid' | 'pending' | 'overdue') => Promise<void>;
+  updateInvoiceStatus: (invoiceId: string, status: 'paid' | 'pending' | 'overdue') => Promise<any>;
 }
 
 // Context with default undefined value
@@ -333,18 +333,38 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   // Update invoice status
   const updateInvoiceStatus = async (invoiceId: string, status: 'paid' | 'pending' | 'overdue') => {
-    if (!currentUser) return;
+    if (!currentUser) return Promise.reject(new Error('User not authenticated'));
 
+    console.log(`Attempting to update invoice ${invoiceId} to status ${status}`);
+    
     try {
-      // Find the invoice
+      // First check if the invoice exists in our local state
       const invoice = invoices.find(i => i.id === invoiceId);
       if (!invoice) {
+        console.error(`Invoice with ID ${invoiceId} not found in local state`);
         toast({
           title: "Error",
-          description: "Invoice not found",
+          description: "Invoice not found in local state",
           variant: "destructive"
         });
-        return;
+        return Promise.reject(new Error('Invoice not found in local state'));
+      }
+
+      // Try to verify the invoice exists in the database before updating
+      try {
+        await invoiceService.getInvoice(currentUser, invoiceId);
+      } catch (verifyError) {
+        console.error("Error verifying invoice exists:", verifyError);
+        
+        // If the invoice doesn't exist in the database, remove it from our local state
+        setInvoices(prevInvoices => prevInvoices.filter(i => i.id !== invoiceId));
+        
+        toast({
+          title: "Error",
+          description: "Invoice not found in database. It may have been deleted.",
+          variant: "destructive"
+        });
+        return Promise.reject(new Error('Invoice not found in database'));
       }
 
       // Update the invoice in Firebase
@@ -363,6 +383,8 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
         title: "Success",
         description: `Invoice status updated to ${status}`
       });
+
+      return updatedInvoice;
     } catch (error: any) {
       console.error("Error updating invoice status:", error);
       toast({
@@ -370,6 +392,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
         description: error.message || "Failed to update invoice status",
         variant: "destructive"
       });
+      return Promise.reject(error);
     }
   };
 
