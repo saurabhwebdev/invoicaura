@@ -4,14 +4,19 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Calendar, CreditCard, X, Plus, Clock, HardDrive, Wrench } from "lucide-react";
+import { Calendar, CreditCard, X, Plus, Clock, HardDrive, Wrench, Pencil } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { Project } from './ProjectCard';
 import InvoiceList, { Invoice } from './InvoiceList';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import InvoiceForm from './InvoiceForm';
 import { useProjects } from '@/context/ProjectsContext';
 import { useSettings } from '@/context/SettingsContext';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from '@/components/ui/use-toast';
 
 interface ProjectDetailProps {
   project: Project;
@@ -28,9 +33,21 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
   onClose,
   onCreateInvoice
 }) => {
-  const { createInvoice } = useProjects();
+  const { createInvoice, updateProject } = useProjects();
   const { formatCurrency, formatDate } = useSettings();
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: project.name,
+    client: project.client,
+    status: project.status,
+    budget: project.budget,
+    startDate: project.startDate,
+    endDate: project.endDate,
+    splitBudget: project.hardwareBudget !== undefined,
+    hardwareBudget: project.hardwareBudget || 0,
+    serviceBudget: project.serviceBudget || 0
+  });
   
   // Filter invoices for this project
   const projectInvoices = invoices.filter(invoice => invoice.projectId === project.id);
@@ -75,15 +92,88 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
     createInvoice(newInvoice);
   };
   
+  const handleEditProject = () => {
+    setEditFormData({
+      name: project.name,
+      client: project.client,
+      status: project.status,
+      budget: project.budget,
+      startDate: project.startDate,
+      endDate: project.endDate,
+      splitBudget: project.hardwareBudget !== undefined,
+      hardwareBudget: project.hardwareBudget || 0,
+      serviceBudget: project.serviceBudget || 0
+    });
+    setShowEditModal(true);
+  };
+  
+  const handleSubmitEdit = () => {
+    // Validation
+    if (!editFormData.name || !editFormData.client || !editFormData.startDate || !editFormData.endDate) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate budget
+    if (!editFormData.splitBudget && !editFormData.budget) {
+      toast({
+        title: "Missing Budget",
+        description: "Please enter a total budget for the project.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (editFormData.splitBudget && (!editFormData.hardwareBudget || !editFormData.serviceBudget)) {
+      toast({
+        title: "Missing Budget Details",
+        description: "Please enter both hardware and service budgets.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Calculate the total budget when split
+    const totalBudget = editFormData.splitBudget 
+      ? Number(editFormData.hardwareBudget) + Number(editFormData.serviceBudget)
+      : Number(editFormData.budget);
+    
+    // Update project
+    const updatedProject = {
+      name: editFormData.name,
+      client: editFormData.client,
+      status: editFormData.status,
+      budget: totalBudget,
+      startDate: editFormData.startDate,
+      endDate: editFormData.endDate,
+      ...(editFormData.splitBudget && {
+        hardwareBudget: Number(editFormData.hardwareBudget),
+        serviceBudget: Number(editFormData.serviceBudget)
+      })
+    };
+    
+    updateProject(project.id, updatedProject);
+    setShowEditModal(false);
+  };
+  
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <div className="flex justify-between items-start">
             <DialogTitle className="text-2xl">{project.name}</DialogTitle>
-            <Badge className={cn("ml-2 capitalize", getStatusColor(project.status))}>
-              {project.status}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge className={cn("capitalize", getStatusColor(project.status))}>
+                {project.status}
+              </Badge>
+              <Button variant="ghost" size="icon" onClick={handleEditProject}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <CardDescription className="text-base">{project.client}</CardDescription>
         </DialogHeader>
@@ -260,10 +350,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
               <h3 className="text-lg font-semibold">Project Invoices</h3>
               <InvoiceForm 
                 projects={[project]} 
-                onSubmit={handleCreateInvoice} 
-                className="w-auto"
+                onSubmit={(data) => {
+                  handleCreateInvoice(data);
+                  setShowInvoiceModal(false);
+                }}
                 selectedProjectId={project.id}
-                hideProjectSelection={true}
               />
             </div>
             
@@ -362,6 +453,175 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
             </Tabs>
           </div>
         </div>
+        
+        {/* Invoice Form Modal */}
+        <Dialog open={showInvoiceModal} onOpenChange={setShowInvoiceModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Invoice for {project.name}</DialogTitle>
+            </DialogHeader>
+            <InvoiceForm 
+              projects={[project]} 
+              onSubmit={(data) => {
+                handleCreateInvoice(data);
+                setShowInvoiceModal(false);
+              }}
+              selectedProjectId={project.id}
+            />
+          </DialogContent>
+        </Dialog>
+        
+        {/* Edit Project Modal */}
+        <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+          <DialogContent className="sm:max-w-[525px]">
+            <DialogHeader>
+              <DialogTitle>Edit Project</DialogTitle>
+              <DialogDescription>
+                Update project information
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-name" className="text-right">
+                  Project Name
+                </Label>
+                <Input
+                  id="edit-name"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-client" className="text-right">
+                  Client
+                </Label>
+                <Input
+                  id="edit-client"
+                  value={editFormData.client}
+                  onChange={(e) => setEditFormData({...editFormData, client: e.target.value})}
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-status" className="text-right">
+                  Status
+                </Label>
+                <Select 
+                  value={editFormData.status} 
+                  onValueChange={(value) => setEditFormData({...editFormData, status: value as 'active' | 'completed' | 'pending'})}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">
+                  Budget Type
+                </Label>
+                <div className="flex items-center space-x-2 col-span-3">
+                  <Checkbox 
+                    id="split-budget" 
+                    checked={editFormData.splitBudget}
+                    onCheckedChange={(checked) => setEditFormData({...editFormData, splitBudget: !!checked})}
+                  />
+                  <label
+                    htmlFor="split-budget"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Split budget into hardware and service
+                  </label>
+                </div>
+              </div>
+              
+              {!editFormData.splitBudget ? (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-budget" className="text-right">
+                    Budget
+                  </Label>
+                  <Input
+                    id="edit-budget"
+                    type="number"
+                    value={editFormData.budget}
+                    onChange={(e) => setEditFormData({...editFormData, budget: Number(e.target.value)})}
+                    className="col-span-3"
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-hardware-budget" className="text-right">
+                      Hardware Budget
+                    </Label>
+                    <Input
+                      id="edit-hardware-budget"
+                      type="number"
+                      value={editFormData.hardwareBudget}
+                      onChange={(e) => setEditFormData({...editFormData, hardwareBudget: Number(e.target.value)})}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-service-budget" className="text-right">
+                      Service Budget
+                    </Label>
+                    <Input
+                      id="edit-service-budget"
+                      type="number"
+                      value={editFormData.serviceBudget}
+                      onChange={(e) => setEditFormData({...editFormData, serviceBudget: Number(e.target.value)})}
+                      className="col-span-3"
+                    />
+                  </div>
+                </>
+              )}
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-start-date" className="text-right">
+                  Start Date
+                </Label>
+                <Input
+                  id="edit-start-date"
+                  type="date"
+                  value={editFormData.startDate}
+                  onChange={(e) => setEditFormData({...editFormData, startDate: e.target.value})}
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-end-date" className="text-right">
+                  End Date
+                </Label>
+                <Input
+                  id="edit-end-date"
+                  type="date"
+                  value={editFormData.endDate}
+                  onChange={(e) => setEditFormData({...editFormData, endDate: e.target.value})}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmitEdit}>
+                Update Project
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );

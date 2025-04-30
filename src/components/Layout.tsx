@@ -16,7 +16,8 @@ import {
   UserPlus,
   BarChart,
   HardDrive,
-  Wrench
+  Wrench,
+  Truck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -65,6 +66,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
     const path = location.pathname;
     if (path === "/") return "dashboard";
     if (path === "/projects") return "projects";
+    if (path === "/vendors") return "vendors";
     if (path === "/invoices") return "invoices";
     if (path === "/third-party") return "thirdParty";
     if (path === "/settings") return "settings";
@@ -83,6 +85,9 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       case "projects":
         path = "/projects";
         break;
+      case "vendors":
+        path = "/vendors";
+        break;  
       case "invoices":
         path = "/invoices";
         break;
@@ -221,6 +226,25 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
                 : "text-emerald-400 dark:text-emerald-400/70"
             )} />
             Projects
+          </Button>
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start animate-slide-in [animation-delay:75ms]",
+              "hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/30 dark:hover:text-purple-300",
+              activeTab === "vendors" 
+                ? "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300" 
+                : ""
+            )}
+            onClick={() => handleTabClick("vendors")}
+          >
+            <Truck className={cn(
+              "w-5 h-5 mr-2",
+              activeTab === "vendors" 
+                ? "text-purple-500 dark:text-purple-300" 
+                : "text-purple-400 dark:text-purple-400/70"
+            )} />
+            Vendors
           </Button>
           <Button
             variant="ghost"

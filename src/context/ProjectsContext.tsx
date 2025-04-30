@@ -11,6 +11,7 @@ interface ProjectsContextType {
   invoices: ComponentInvoice[];
   loading: boolean;
   createProject: (projectData: Omit<ComponentProject, 'id' | 'invoiced' | 'invoiceCount'>) => Promise<void>;
+  updateProject: (projectId: string, projectData: Partial<ComponentProject>) => Promise<void>;
   createInvoice: (invoiceData: any) => Promise<void>;
   createThirdPartyInvoice: (thirdPartyData: any) => Promise<void>;
   updateInvoiceStatus: (invoiceId: string, status: 'paid' | 'pending' | 'overdue') => Promise<void>;
@@ -124,6 +125,33 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
       toast({
         title: "Error",
         description: error.message || "Failed to create project",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Update an existing project
+  const updateProject = async (projectId: string, projectData: Partial<ComponentProject>) => {
+    if (!currentUser) return;
+
+    try {
+      // Update project in Firebase
+      const updatedProject = await projectService.updateProject(currentUser, projectId, projectData);
+
+      // Update local state
+      setProjects(prevProjects => 
+        prevProjects.map(p => (p.id === projectId ? mapToComponentProject(updatedProject) : p))
+      );
+
+      toast({
+        title: "Success",
+        description: "Project updated successfully"
+      });
+    } catch (error: any) {
+      console.error("Error updating project:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update project",
         variant: "destructive"
       });
     }
@@ -306,6 +334,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
         invoices,
         loading,
         createProject,
+        updateProject,
         createInvoice,
         createThirdPartyInvoice,
         updateInvoiceStatus

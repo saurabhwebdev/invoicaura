@@ -12,6 +12,7 @@ import PublicRoute from "@/components/auth/PublicRoute";
 // Main App Pages
 import Index from "./pages/Index";
 import Projects from "./pages/Projects";
+import Vendors from "./pages/Vendors";
 import Invoices from "./pages/Invoices";
 import ThirdParty from "./pages/ThirdParty";
 import Settings from "./pages/Settings";
@@ -56,6 +57,14 @@ const App = () => (
                       element={
                         <ProtectedRoute>
                           <Projects />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/vendors" 
+                      element={
+                        <ProtectedRoute>
+                          <Vendors />
                         </ProtectedRoute>
                       } 
                     />
