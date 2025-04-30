@@ -12,9 +12,8 @@ import PublicRoute from "@/components/auth/PublicRoute";
 // Main App Pages
 import Index from "./pages/Index";
 import Projects from "./pages/Projects";
-import Vendors from "./pages/Vendors";
+import VendorManagement from "./pages/VendorManagement";
 import Invoices from "./pages/Invoices";
-import ThirdParty from "./pages/ThirdParty";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -62,9 +61,17 @@ const App = () => (
                     />
                     <Route 
                       path="/vendors" 
+                      element={<Navigate to="/vendor-management" replace />}
+                    />
+                    <Route 
+                      path="/third-party" 
+                      element={<Navigate to="/vendor-management" replace />}
+                    />
+                    <Route 
+                      path="/vendor-management" 
                       element={
                         <ProtectedRoute>
-                          <Vendors />
+                          <VendorManagement />
                         </ProtectedRoute>
                       } 
                     />
@@ -73,14 +80,6 @@ const App = () => (
                       element={
                         <ProtectedRoute>
                           <Invoices />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/third-party" 
-                      element={
-                        <ProtectedRoute>
-                          <ThirdParty />
                         </ProtectedRoute>
                       } 
                     />

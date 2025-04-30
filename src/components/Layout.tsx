@@ -50,6 +50,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
   const location = useLocation();
   const { toast } = useToast();
   const { projects, createProject, createInvoice } = useProjects();
+  const { currentUser } = useAuth();
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
   const [newProject, setNewProject] = useState({
@@ -81,9 +82,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
     const path = location.pathname;
     if (path === "/") return "dashboard";
     if (path === "/projects") return "projects";
-    if (path === "/vendors") return "vendors";
+    if (path === "/vendor-management") return "vendorManagement";
     if (path === "/invoices") return "invoices";
-    if (path === "/third-party") return "thirdParty";
     if (path === "/settings") return "settings";
     return "dashboard";
   };
@@ -100,14 +100,11 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       case "projects":
         path = "/projects";
         break;
-      case "vendors":
-        path = "/vendors";
+      case "vendorManagement":
+        path = "/vendor-management";
         break;  
       case "invoices":
         path = "/invoices";
-        break;
-      case "thirdParty":
-        path = "/third-party";
         break;
       case "settings":
         path = "/settings";
@@ -169,7 +166,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       gstEnabled: newProject.gstEnabled,
       tdsEnabled: newProject.tdsEnabled,
       poNumbers: newProject.poNumbers,
-      currentPo: newProject.currentPo
+      currentPo: newProject.currentPo,
+      userId: currentUser.uid
     };
     
     // Add split budget data if enabled
@@ -282,19 +280,19 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
             className={cn(
               "w-full justify-start animate-slide-in [animation-delay:75ms]",
               "hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/30 dark:hover:text-purple-300",
-              activeTab === "vendors" 
+              activeTab === "vendorManagement" 
                 ? "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300" 
                 : ""
             )}
-            onClick={() => handleTabClick("vendors")}
+            onClick={() => handleTabClick("vendorManagement")}
           >
             <Truck className={cn(
               "w-5 h-5 mr-2",
-              activeTab === "vendors" 
+              activeTab === "vendorManagement" 
                 ? "text-purple-500 dark:text-purple-300" 
                 : "text-purple-400 dark:text-purple-400/70"
             )} />
-            Vendors
+            Vendor Management
           </Button>
           <Button
             variant="ghost"
@@ -314,25 +312,6 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
                 : "text-violet-400 dark:text-violet-400/70"
             )} />
             Invoices
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start animate-slide-in [animation-delay:125ms]",
-              "hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/30 dark:hover:text-amber-300",
-              activeTab === "thirdParty" 
-                ? "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300" 
-                : ""
-            )}
-            onClick={() => handleTabClick("thirdParty")}
-          >
-            <Receipt className={cn(
-              "w-5 h-5 mr-2",
-              activeTab === "thirdParty" 
-                ? "text-amber-500 dark:text-amber-300" 
-                : "text-amber-400 dark:text-amber-400/70"
-            )} />
-            Third-Party
           </Button>
           <Button
             variant="ghost"
