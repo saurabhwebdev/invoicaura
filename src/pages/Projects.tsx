@@ -286,7 +286,6 @@ const Projects = () => {
                       <TableHead>Start Date</TableHead>
                       <TableHead>End Date</TableHead>
                       <TableHead>Tax</TableHead>
-                      <TableHead>PO</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -339,20 +338,12 @@ const Projects = () => {
                                 {project.tdsEnabled && <span>TDS {project.tdsPercentage || 2}%</span>}
                               </div>
                             </TableCell>
-                            <TableCell>
-                              {project.currentPo && project.poNumbers && project.poNumbers[project.currentPo] && (
-                                <div className="flex items-center gap-1 text-xs">
-                                  <CreditCard className="h-3 w-3" />
-                                  <span>{project.poNumbers[project.currentPo]}</span>
-                                </div>
-                              )}
-                            </TableCell>
                           </TableRow>
                         );
                       })}
                     {projects.filter(project => project.status === "active").length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
                           No active projects. Create a new project to get started.
                         </TableCell>
                       </TableRow>
@@ -396,7 +387,6 @@ const Projects = () => {
                       <TableHead>Start Date</TableHead>
                       <TableHead>End Date</TableHead>
                       <TableHead>Tax</TableHead>
-                      <TableHead>PO</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -449,20 +439,12 @@ const Projects = () => {
                                 {project.tdsEnabled && <span>TDS {project.tdsPercentage || 2}%</span>}
                               </div>
                             </TableCell>
-                            <TableCell>
-                              {project.currentPo && project.poNumbers && project.poNumbers[project.currentPo] && (
-                                <div className="flex items-center gap-1 text-xs">
-                                  <CreditCard className="h-3 w-3" />
-                                  <span>{project.poNumbers[project.currentPo]}</span>
-                                </div>
-                              )}
-                            </TableCell>
                           </TableRow>
                         );
                       })}
                     {projects.filter(project => project.status === "completed").length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
                           No completed projects yet.
                         </TableCell>
                       </TableRow>
@@ -504,7 +486,6 @@ const Projects = () => {
                       <TableHead>Start Date</TableHead>
                       <TableHead>End Date</TableHead>
                       <TableHead>Tax</TableHead>
-                      <TableHead>PO</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -555,20 +536,12 @@ const Projects = () => {
                               {project.tdsEnabled && <span>TDS {project.tdsPercentage || 2}%</span>}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            {project.currentPo && project.poNumbers && project.poNumbers[project.currentPo] && (
-                              <div className="flex items-center gap-1 text-xs">
-                                <CreditCard className="h-3 w-3" />
-                                <span>{project.poNumbers[project.currentPo]}</span>
-                              </div>
-                            )}
-                          </TableCell>
                         </TableRow>
                       );
                     })}
                     {projects.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
                           No projects yet. Create a new project to get started.
                         </TableCell>
                       </TableRow>
