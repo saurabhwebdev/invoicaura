@@ -179,141 +179,85 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Without split budget */}
-          {!hasBudgetSplit && (
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="border-aura-blue/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Budget</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(project.budget)}</div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-aura-blue/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Invoiced</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(project.invoiced)}</div>
-                  <Progress 
-                    value={progress} 
-                    className={cn(
-                      "h-1.5 mt-2",
-                      progress > 90 ? "bg-aura-red" : 
-                      progress > 75 ? "bg-aura-orange" : 
-                      "bg-aura-green"
-                    )}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          )}
-          
-          {/* With split budget */}
-          {hasBudgetSplit && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <Card className="border-aura-blue/20">
-                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                      <HardDrive className="h-4 w-4 text-aura-blue" />
-                      Hardware Budget
-                    </CardTitle>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-aura-blue/10 text-aura-blue">
-                      {Math.round(hardwareProgress)}% Used
-                    </span>
-                  </CardHeader>
-                  <CardContent className="pb-4">
-                    <div className="text-xl font-bold">{formatCurrency(project.hardwareBudget || 0)}</div>
-                    <div className="flex justify-between text-sm mt-1 mb-2">
-                      <span className="text-muted-foreground">Invoiced</span>
-                      <span>{formatCurrency(project.hardwareInvoiced || 0)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Remaining</span>
-                      <span className="font-medium">{formatCurrency((project.hardwareBudget || 0) - (project.hardwareInvoiced || 0))}</span>
-                    </div>
-                    <Progress 
-                      value={hardwareProgress} 
-                      className={cn(
-                        "h-1.5 mt-1",
-                        hardwareProgress > 90 ? "bg-aura-red" : 
-                        hardwareProgress > 75 ? "bg-aura-orange" : 
-                        "bg-aura-blue"
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-aura-purple/20">
-                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                      <Wrench className="h-4 w-4 text-aura-purple" />
-                      Service Budget
-                    </CardTitle>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-aura-purple/10 text-aura-purple">
-                      {Math.round(serviceProgress)}% Used
-                    </span>
-                  </CardHeader>
-                  <CardContent className="pb-4">
-                    <div className="text-xl font-bold">{formatCurrency(project.serviceBudget || 0)}</div>
-                    <div className="flex justify-between text-sm mt-1 mb-2">
-                      <span className="text-muted-foreground">Invoiced</span>
-                      <span>{formatCurrency(project.serviceInvoiced || 0)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Remaining</span>
-                      <span className="font-medium">{formatCurrency((project.serviceBudget || 0) - (project.serviceInvoiced || 0))}</span>
-                    </div>
-                    <Progress 
-                      value={serviceProgress} 
-                      className={cn(
-                        "h-1.5 mt-1",
-                        serviceProgress > 90 ? "bg-aura-red" : 
-                        serviceProgress > 75 ? "bg-aura-orange" : 
-                        "bg-aura-purple"
-                      )}
-                    />
-                  </CardContent>
-                </Card>
+          <div className="px-4 sm:px-6 lg:px-8 py-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-500">Budget</h3>
+                <p className="text-xl font-semibold">{formatCurrency(project.budget)}</p>
               </div>
               
-              <Card className="border-aura-gray/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Budget Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="pb-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-sm text-muted-foreground">Total Budget</span>
-                      <div className="text-xl font-bold">{formatCurrency(project.budget)}</div>
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-500">Invoiced</h3>
+                <p className="text-xl font-semibold">{formatCurrency(project.invoiced)}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-500">Remaining</h3>
+                <p className="text-xl font-semibold">{formatCurrency(project.budget - project.invoiced)}</p>
+              </div>
+            </div>
+            
+            {/* Show budget details if the project has a split budget */}
+            {hasBudgetSplit && (
+              <div className="mt-6 border-t border-border pt-6">
+                <h3 className="text-lg font-medium mb-4">Budget Breakdown</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-background rounded-lg border border-border p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <HardDrive className="h-4 w-4 text-primary" />
+                        <h4 className="font-medium">Hardware Budget</h4>
+                      </div>
+                      <span className="text-sm font-semibold">{formatCurrency(project.hardwareBudget || 0)}</span>
                     </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">Total Invoiced</span>
-                      <div className="text-xl font-bold">{formatCurrency(project.invoiced)}</div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Invoiced</span>
+                        <span>{formatCurrency(project.hardwareInvoiced || 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Remaining</span>
+                        <span>{formatCurrency((project.hardwareBudget || 0) - (project.hardwareInvoiced || 0))}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-3">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm text-muted-foreground">Overall Progress</span>
-                      <span className="text-sm font-medium">{Math.round(progress)}%</span>
-                    </div>
+                    
                     <Progress 
-                      value={progress} 
-                      className={cn(
-                        "h-2",
-                        progress > 90 ? "bg-aura-red" : 
-                        progress > 75 ? "bg-aura-orange" : 
-                        "bg-aura-green"
-                      )}
+                      value={project.hardwareBudget ? Math.min(100, (project.hardwareInvoiced || 0) / (project.hardwareBudget) * 100) : 0} 
+                      className="h-2 mt-3" 
                     />
                   </div>
-                </CardContent>
-              </Card>
-            </>
-          )}
+                  
+                  <div className="bg-background rounded-lg border border-border p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Wrench className="h-4 w-4 text-primary" />
+                        <h4 className="font-medium">Service Budget</h4>
+                      </div>
+                      <span className="text-sm font-semibold">{formatCurrency(project.serviceBudget || 0)}</span>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Invoiced</span>
+                        <span>{formatCurrency(project.serviceInvoiced || 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Remaining</span>
+                        <span>{formatCurrency((project.serviceBudget || 0) - (project.serviceInvoiced || 0))}</span>
+                      </div>
+                    </div>
+                    
+                    <Progress 
+                      value={project.serviceBudget ? Math.min(100, (project.serviceInvoiced || 0) / (project.serviceBudget) * 100) : 0} 
+                      className="h-2 mt-3" 
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
@@ -543,20 +487,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 </div>
               </div>
               
-              {!editFormData.splitBudget ? (
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-budget" className="text-right">
-                    Budget
-                  </Label>
-                  <Input
-                    id="edit-budget"
-                    type="number"
-                    value={editFormData.budget}
-                    onChange={(e) => setEditFormData({...editFormData, budget: Number(e.target.value)})}
-                    className="col-span-3"
-                  />
-                </div>
-              ) : (
+              {hasBudgetSplit ? (
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="edit-hardware-budget" className="text-right">
@@ -570,6 +501,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       className="col-span-3"
                     />
                   </div>
+                  
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="edit-service-budget" className="text-right">
                       Service Budget
@@ -582,7 +514,29 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       className="col-span-3"
                     />
                   </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <div className="text-right text-sm text-muted-foreground">
+                      Total Budget
+                    </div>
+                    <div className="col-span-3 font-medium">
+                      {formatCurrency(Number(editFormData.hardwareBudget) + Number(editFormData.serviceBudget))}
+                    </div>
+                  </div>
                 </>
+              ) : (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-budget" className="text-right">
+                    Budget
+                  </Label>
+                  <Input
+                    id="edit-budget"
+                    type="number"
+                    value={editFormData.budget}
+                    onChange={(e) => setEditFormData({...editFormData, budget: Number(e.target.value)})}
+                    className="col-span-3"
+                  />
+                </div>
               )}
               
               <div className="grid grid-cols-4 items-center gap-4">

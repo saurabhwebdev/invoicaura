@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, HardDrive, Wrench } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useSettings } from '@/context/SettingsContext';
 
 interface InvoiceFormProps {
   projects: Array<{ 
@@ -34,6 +35,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
   hideProjectSelection = false
 }) => {
   const { toast } = useToast();
+  const { formatCurrency } = useSettings();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     projectId: selectedProjectId || '',
@@ -178,7 +180,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
               </Select>
               {selectedProject && !hasBudgetSplit && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Remaining budget: ${remainingBudget.toLocaleString()}
+                  Remaining budget: {formatCurrency(remainingBudget)}
                 </p>
               )}
             </div>
@@ -190,7 +192,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
               <div className="flex justify-between border rounded-md p-2">
                 <span className="font-medium">{selectedProject.name}</span>
                 <span className="text-muted-foreground text-sm">
-                  Remaining: ${remainingBudget.toLocaleString()}
+                  Remaining: {formatCurrency(remainingBudget)}
                 </span>
               </div>
             </div>
@@ -215,7 +217,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                       "font-medium",
                       remainingHardwareBudget < 0.2 * (selectedProject.hardwareBudget || 0) ? "text-aura-red" : ""
                     )}>
-                      ${remainingHardwareBudget.toLocaleString()}
+                      {formatCurrency(remainingHardwareBudget)}
                     </div>
                   </div>
                 </div>
@@ -230,7 +232,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                       "font-medium",
                       remainingServiceBudget < 0.2 * (selectedProject.serviceBudget || 0) ? "text-aura-red" : ""
                     )}>
-                      ${remainingServiceBudget.toLocaleString()}
+                      {formatCurrency(remainingServiceBudget)}
                     </div>
                   </div>
                 </div>

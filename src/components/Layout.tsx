@@ -38,6 +38,7 @@ import { Label } from "@/components/ui/label";
 import { useProjects } from '@/context/ProjectsContext';
 import InvoiceForm from "@/components/InvoiceForm";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useSettings } from '@/context/SettingsContext';
 
 interface SidebarNavProps {
   className?: string;
@@ -60,6 +61,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
     hardwareBudget: 0,
     serviceBudget: 0
   });
+  const { formatCurrency } = useSettings();
   
   // Set active tab based on current path
   const getActiveTab = () => {
@@ -455,7 +457,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
                     Total Budget
                   </div>
                   <div className="col-span-3 font-medium">
-                    ${(Number(newProject.hardwareBudget) + Number(newProject.serviceBudget)).toLocaleString()}
+                    {formatCurrency(Number(newProject.hardwareBudget) + Number(newProject.serviceBudget))}
                   </div>
                 </div>
               </>

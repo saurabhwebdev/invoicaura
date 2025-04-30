@@ -12,10 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useProjects } from '@/context/ProjectsContext';
+import { useSettings } from '@/context/SettingsContext';
 
 const Projects = () => {
   const { toast } = useToast();
   const { projects, invoices, createProject, loading } = useProjects();
+  const { formatCurrency } = useSettings();
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newProject, setNewProject] = useState({
@@ -294,15 +296,17 @@ const Projects = () => {
             {!newProject.splitBudget ? (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="budget" className="text-right">
-                  Total Budget
+                  Budget
                 </Label>
-                <Input
-                  id="budget"
-                  type="number"
-                  value={newProject.budget}
-                  onChange={(e) => setNewProject({...newProject, budget: Number(e.target.value)})}
-                  className="col-span-3"
-                />
+                <div className="col-span-3 flex items-center gap-2">
+                  <Input
+                    id="budget"
+                    type="number"
+                    value={newProject.budget}
+                    onChange={(e) => setNewProject({...newProject, budget: Number(e.target.value)})}
+                    className="flex-1"
+                  />
+                </div>
               </div>
             ) : (
               <>
@@ -339,7 +343,7 @@ const Projects = () => {
                     Total Budget
                   </div>
                   <div className="col-span-3 font-medium">
-                    ${(Number(newProject.hardwareBudget) + Number(newProject.serviceBudget)).toLocaleString()}
+                    {formatCurrency(Number(newProject.hardwareBudget) + Number(newProject.serviceBudget))}
                   </div>
                 </div>
               </>

@@ -175,7 +175,7 @@ const ThirdPartyInvoiceForm: React.FC<ThirdPartyInvoiceFormProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount ($)</Label>
+            <Label htmlFor="amount">Amount</Label>
             <Input
               id="amount"
               name="amount"
