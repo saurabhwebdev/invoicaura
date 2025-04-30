@@ -12,6 +12,7 @@ interface ProjectsContextType {
   loading: boolean;
   createProject: (projectData: Omit<ComponentProject, 'id' | 'invoiced' | 'invoiceCount'>) => Promise<void>;
   updateProject: (projectId: string, projectData: Partial<ComponentProject>) => Promise<void>;
+  deleteProject: (projectId: string) => Promise<void>;
   createInvoice: (invoiceData: any) => Promise<void>;
   createThirdPartyInvoice: (thirdPartyData: any) => Promise<void>;
   updateInvoiceStatus: (invoiceId: string, status: 'paid' | 'pending' | 'overdue') => Promise<void>;
@@ -152,6 +153,42 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
       toast({
         title: "Error",
         description: error.message || "Failed to update project",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Delete a project
+  const deleteProject = async (projectId: string) => {
+    if (!currentUser) return;
+
+    try {
+      // Check if project has invoices
+      const projectInvoices = invoices.filter(invoice => invoice.projectId === projectId);
+      if (projectInvoices.length > 0) {
+        toast({
+          title: "Action Blocked",
+          description: "Cannot delete a project with existing invoices. Delete all invoices first.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Delete project from Firebase
+      await projectService.deleteProject(currentUser, projectId);
+
+      // Update local state
+      setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId));
+
+      toast({
+        title: "Success",
+        description: "Project deleted successfully"
+      });
+    } catch (error: any) {
+      console.error("Error deleting project:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete project",
         variant: "destructive"
       });
     }
@@ -335,6 +372,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
         loading,
         createProject,
         updateProject,
+        deleteProject,
         createInvoice,
         createThirdPartyInvoice,
         updateInvoiceStatus

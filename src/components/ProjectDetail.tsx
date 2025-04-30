@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Calendar, CreditCard, X, Plus, Clock, HardDrive, Wrench, Pencil } from "lucide-react";
+import { Calendar, CreditCard, X, Plus, Clock, HardDrive, Wrench, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { Project } from './ProjectCard';
 import InvoiceList, { Invoice } from './InvoiceList';
@@ -33,10 +33,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
   onClose,
   onCreateInvoice
 }) => {
-  const { createInvoice, updateProject } = useProjects();
+  const { createInvoice, updateProject, deleteProject } = useProjects();
   const { formatCurrency, formatDate } = useSettings();
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editFormData, setEditFormData] = useState({
     name: project.name,
     client: project.client,
@@ -160,6 +161,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
     setShowEditModal(false);
   };
   
+  const handleDeleteProject = async () => {
+    try {
+      await deleteProject(project.id);
+      onClose();
+    } catch (error) {
+      console.error("Error in handleDeleteProject:", error);
+    }
+  };
+  
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-[700px]">
@@ -172,6 +182,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </Badge>
               <Button variant="ghost" size="icon" onClick={handleEditProject}>
                 <Pencil className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" 
+                className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                onClick={() => setShowDeleteModal(true)}>
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -572,6 +587,42 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </Button>
               <Button onClick={handleSubmitEdit}>
                 Update Project
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Delete Project Confirmation Modal */}
+        <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="text-xl flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                Confirm Delete
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this project? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="bg-red-50 border border-red-200 rounded-md p-4 my-4">
+              <p className="font-medium">{project.name}</p>
+              <p className="text-sm text-muted-foreground">{project.client}</p>
+              {projectInvoices.length > 0 && (
+                <p className="text-sm text-red-600 mt-2">
+                  Warning: This project has {projectInvoices.length} invoices. 
+                  You cannot delete a project with associated invoices.
+                </p>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteProject}
+                disabled={projectInvoices.length > 0}>
+                Delete Project
               </Button>
             </DialogFooter>
           </DialogContent>
