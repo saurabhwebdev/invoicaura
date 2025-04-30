@@ -270,7 +270,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       if (activePOTypes.includes('software') && selectedProject.poNumbers.software) {
         availablePOs.push({ 
           value: selectedProject.poNumbers.software, 
-          label: `Software PO: ${selectedProject.poNumbers.software}` 
+          label: `Services PO: ${selectedProject.poNumbers.software}` 
         });
       }
       
@@ -292,7 +292,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       if (selectedProject.poNumbers.software) {
         availablePOs.push({ 
           value: selectedProject.poNumbers.software, 
-          label: `Software PO: ${selectedProject.poNumbers.software}` 
+          label: `Services PO: ${selectedProject.poNumbers.software}` 
         });
       }
       
@@ -313,7 +313,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     if (selectedProject.poNumbers.hardware === poNumber) {
       return "Using Hardware PO";
     } else if (selectedProject.poNumbers.software === poNumber) {
-      return "Using Software PO";
+      return "Using Services PO";
     } else if (selectedProject.poNumbers.combined === poNumber) {
       return "Using Combined PO";
     }

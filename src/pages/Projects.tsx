@@ -618,15 +618,15 @@ const Projects = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="projectSoftwarePo" className="text-sm mb-1 block">Software PO</Label>
+                    <Label htmlFor="projectServicesPo" className="text-sm mb-1 block">Services PO</Label>
                     <Input
-                      id="projectSoftwarePo"
+                      id="projectServicesPo"
                       value={newProject.poNumbers.software}
                       onChange={(e) => setNewProject({
                         ...newProject, 
                         poNumbers: {...newProject.poNumbers, software: e.target.value}
                       })}
-                      placeholder="Software PO number"
+                      placeholder="Services PO number"
                     />
                   </div>
                   
@@ -672,7 +672,7 @@ const Projects = () => {
                       {newProject.poNumbers.software && (
                         <div className="flex items-center space-x-2">
                           <Checkbox 
-                            id="active-software-po" 
+                            id="active-services-po" 
                             checked={newProject.activePOs.includes('software')}
                             onCheckedChange={(checked) => {
                               const newActivePOs = [...newProject.activePOs];
@@ -689,7 +689,7 @@ const Projects = () => {
                               setNewProject({...newProject, activePOs: newActivePOs, currentPo: undefined});
                             }}
                           />
-                          <Label htmlFor="active-software-po" className="font-normal">Software PO</Label>
+                          <Label htmlFor="active-services-po" className="font-normal">Services PO</Label>
                         </div>
                       )}
                       {newProject.poNumbers.combined && (

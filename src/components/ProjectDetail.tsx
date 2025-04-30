@@ -486,7 +486,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 
                 {project.poNumbers.software && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Software PO:</span>
+                    <span className="text-muted-foreground">Services PO:</span>
                     <span className="font-medium">{project.poNumbers.software}</span>
                   </div>
                 )}
@@ -503,7 +503,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     <span className="text-muted-foreground">Active PO:</span>
                     <Badge variant="outline" className="capitalize font-normal">
                       {project.currentPo === 'hardware' ? 'Hardware PO' : 
-                       project.currentPo === 'software' ? 'Software PO' : 'Combined PO'}
+                       project.currentPo === 'software' ? 'Services PO' : 'Combined PO'}
                     </Badge>
                   </div>
                 )}
@@ -515,7 +515,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       {project.activePOs.map(po => (
                         <Badge key={po} variant="outline" className="capitalize font-normal">
                           {po === 'hardware' ? 'Hardware PO' : 
-                           po === 'software' ? 'Software PO' : 'Combined PO'}
+                           po === 'software' ? 'Services PO' : 'Combined PO'}
                         </Badge>
                       ))}
                     </div>
@@ -876,12 +876,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     </div>
                     
                     <div>
-                      <Label htmlFor="edit-software-po" className="text-sm mb-1 block">Software PO</Label>
+                      <Label htmlFor="edit-services-po" className="text-sm mb-1 block">Services PO</Label>
                       <Input
-                        id="edit-software-po"
+                        id="edit-services-po"
                         value={editFormData.poNumbers?.software || ''}
                         onChange={(e) => setEditFormData({...editFormData, poNumbers: {...editFormData.poNumbers, software: e.target.value}})}
-                        placeholder="Software PO number"
+                        placeholder="Services PO number"
                       />
                     </div>
                     
@@ -924,7 +924,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         {editFormData.poNumbers?.software && (
                           <div className="flex items-center space-x-2">
                             <Checkbox 
-                              id="active-software-po" 
+                              id="active-services-po" 
                               checked={editFormData.currentPo === 'software' || editFormData.activePOs?.includes('software')}
                               onCheckedChange={(checked) => {
                                 const newActivePOs = editFormData.activePOs || [];
@@ -941,7 +941,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                                 setEditFormData({...editFormData, activePOs: newActivePOs, currentPo: undefined});
                               }}
                             />
-                            <Label htmlFor="active-software-po" className="font-normal">Software PO</Label>
+                            <Label htmlFor="active-services-po" className="font-normal">Services PO</Label>
                           </div>
                         )}
                         {editFormData.poNumbers?.combined && (

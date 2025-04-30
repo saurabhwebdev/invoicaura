@@ -714,15 +714,15 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="projectSoftwarePo" className="text-sm mb-1 block">Software PO</Label>
+                    <Label htmlFor="projectServicesPo" className="text-sm mb-1 block">Services PO</Label>
                     <Input
-                      id="projectSoftwarePo"
+                      id="projectServicesPo"
                       value={newProject.poNumbers.software}
                       onChange={(e) => setNewProject({
                         ...newProject, 
                         poNumbers: {...newProject.poNumbers, software: e.target.value}
                       })}
-                      placeholder="Software PO number"
+                      placeholder="Services PO number"
                     />
                   </div>
                   
@@ -752,7 +752,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="hardware">Hardware PO</SelectItem>
-                        <SelectItem value="software">Software PO</SelectItem>
+                        <SelectItem value="software">Services PO</SelectItem>
                         <SelectItem value="combined">Combined PO</SelectItem>
                       </SelectContent>
                     </Select>
