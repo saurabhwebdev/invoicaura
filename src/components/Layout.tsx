@@ -149,55 +149,95 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
             variant="ghost"
             className={cn(
               "w-full justify-start animate-slide-in [animation-delay:0ms]",
-              activeTab === "dashboard" && "bg-accent"
+              "hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-300",
+              activeTab === "dashboard" 
+                ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300" 
+                : ""
             )}
             onClick={() => handleTabClick("dashboard")}
           >
-            <Home className="w-5 h-5 mr-2" />
+            <Home className={cn(
+              "w-5 h-5 mr-2",
+              activeTab === "dashboard" 
+                ? "text-blue-500 dark:text-blue-300" 
+                : "text-blue-400 dark:text-blue-400/70"
+            )} />
             Dashboard
           </Button>
           <Button
             variant="ghost"
             className={cn(
               "w-full justify-start animate-slide-in [animation-delay:50ms]",
-              activeTab === "projects" && "bg-accent"
+              "hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300",
+              activeTab === "projects" 
+                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300" 
+                : ""
             )}
             onClick={() => handleTabClick("projects")}
           >
-            <FileText className="w-5 h-5 mr-2" />
+            <FileText className={cn(
+              "w-5 h-5 mr-2",
+              activeTab === "projects" 
+                ? "text-emerald-500 dark:text-emerald-300" 
+                : "text-emerald-400 dark:text-emerald-400/70"
+            )} />
             Projects
           </Button>
           <Button
             variant="ghost"
             className={cn(
               "w-full justify-start animate-slide-in [animation-delay:100ms]",
-              activeTab === "invoices" && "bg-accent"
+              "hover:bg-violet-50 hover:text-violet-600 dark:hover:bg-violet-900/30 dark:hover:text-violet-300",
+              activeTab === "invoices" 
+                ? "bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300" 
+                : ""
             )}
             onClick={() => handleTabClick("invoices")}
           >
-            <CreditCard className="w-5 h-5 mr-2" />
+            <CreditCard className={cn(
+              "w-5 h-5 mr-2",
+              activeTab === "invoices" 
+                ? "text-violet-500 dark:text-violet-300" 
+                : "text-violet-400 dark:text-violet-400/70"
+            )} />
             Invoices
           </Button>
           <Button
             variant="ghost"
             className={cn(
               "w-full justify-start animate-slide-in [animation-delay:125ms]",
-              activeTab === "thirdParty" && "bg-accent"
+              "hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/30 dark:hover:text-amber-300",
+              activeTab === "thirdParty" 
+                ? "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300" 
+                : ""
             )}
             onClick={() => handleTabClick("thirdParty")}
           >
-            <Receipt className="w-5 h-5 mr-2" />
+            <Receipt className={cn(
+              "w-5 h-5 mr-2",
+              activeTab === "thirdParty" 
+                ? "text-amber-500 dark:text-amber-300" 
+                : "text-amber-400 dark:text-amber-400/70"
+            )} />
             Third-Party
           </Button>
           <Button
             variant="ghost"
             className={cn(
               "w-full justify-start animate-slide-in [animation-delay:150ms]",
-              activeTab === "settings" && "bg-accent"
+              "hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800/60 dark:hover:text-slate-300",
+              activeTab === "settings" 
+                ? "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300" 
+                : ""
             )}
             onClick={() => handleTabClick("settings")}
           >
-            <Settings className="w-5 h-5 mr-2" />
+            <Settings className={cn(
+              "w-5 h-5 mr-2",
+              activeTab === "settings" 
+                ? "text-slate-500 dark:text-slate-300" 
+                : "text-slate-400 dark:text-slate-400/70"
+            )} />
             Settings
           </Button>
         </div>
@@ -205,20 +245,29 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       <Separator />
       <div className="flex-1"></div>
       <div className="px-2 py-4 space-y-2">
-        <Button onClick={handleCreateProject} className="w-full gap-2 transition-all hover:gap-3" variant="default">
+        <Button 
+          onClick={handleCreateProject} 
+          className="w-full gap-2 transition-all hover:gap-3 bg-emerald-200 hover:bg-emerald-300 text-emerald-800 border-none" 
+        >
           <PlusCircle className="w-4 h-4" />
           <span>New Project</span>
         </Button>
         <InvoiceForm 
           projects={projects} 
           onSubmit={handleCreateInvoice}
-          className="w-full border border-primary"
+          className="w-full border border-violet-200"
         />
-        <Button onClick={() => setShowNewClientDialog(true)} variant="secondary" className="w-full gap-2 transition-all hover:gap-3 border border-secondary">
+        <Button 
+          onClick={() => setShowNewClientDialog(true)} 
+          className="w-full gap-2 transition-all hover:gap-3 bg-sky-200 hover:bg-sky-300 text-sky-800 border-none"
+        >
           <UserPlus className="w-4 h-4" />
           <span>New Client</span>
         </Button>
-        <Button onClick={() => navigate("/")} variant="destructive" className="w-full gap-2 transition-all hover:gap-3 border border-destructive bg-opacity-80 hover:bg-opacity-100">
+        <Button 
+          onClick={() => navigate("/")} 
+          className="w-full gap-2 transition-all hover:gap-3 bg-rose-200 hover:bg-rose-300 text-rose-800 border-none"
+        >
           <BarChart className="w-4 h-4" />
           <span>Reports</span>
         </Button>
@@ -442,10 +491,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <InvoiceForm 
                   projects={projects} 
                   onSubmit={handleCreateInvoice}
-                  className="border border-primary"
+                  className="border-none"
                 />
               </div>
-              <Button variant="outline" size="icon" className="md:hidden" onClick={handleNewInvoiceClick}>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="md:hidden bg-violet-100 hover:bg-violet-200 border-violet-200 text-violet-700" 
+                onClick={handleNewInvoiceClick}
+              >
                 <PlusCircle className="h-5 w-5" />
               </Button>
               

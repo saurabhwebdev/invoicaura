@@ -101,7 +101,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className={cn("gap-2", className)}>
+        <Button className={cn("gap-2 bg-violet-200 hover:bg-violet-300 text-violet-800 border-none", className)}>
           <PlusCircle className="h-4 w-4" />
           New Invoice
         </Button>
