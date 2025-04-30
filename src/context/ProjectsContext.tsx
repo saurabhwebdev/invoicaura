@@ -1,17 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { projectService, invoiceService } from '@/lib/dbService';
-import { Project as ComponentProject } from '@/components/ProjectCard';
+import { projectService, invoiceService, Project } from '@/lib/dbService';
 import { Invoice as ComponentInvoice } from '@/components/InvoiceList';
 
 // Context interface
 interface ProjectsContextType {
-  projects: ComponentProject[];
+  projects: Project[];
   invoices: ComponentInvoice[];
   loading: boolean;
-  createProject: (projectData: Omit<ComponentProject, 'id' | 'invoiced' | 'invoiceCount'>) => Promise<void>;
-  updateProject: (projectId: string, projectData: Partial<ComponentProject>) => Promise<void>;
+  createProject: (projectData: Omit<Project, 'id' | 'invoiced' | 'invoiceCount'>) => Promise<void>;
+  updateProject: (projectId: string, projectData: Partial<Project>) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
   createInvoice: (invoiceData: any) => Promise<void>;
   createThirdPartyInvoice: (thirdPartyData: any) => Promise<void>;
@@ -35,11 +34,11 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [projects, setProjects] = useState<ComponentProject[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [invoices, setInvoices] = useState<ComponentInvoice[]>([]);
 
   // Helper function to map service Project to component Project
-  const mapToComponentProject = (project: any): ComponentProject => ({
+  const mapToComponentProject = (project: any): Project => ({
     id: project.id,
     name: project.name,
     client: project.client,
@@ -47,14 +46,22 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
     invoiced: project.invoiced,
     startDate: project.startDate,
     endDate: project.endDate,
-    status: project.status === 'cancelled' ? 'pending' : project.status, // Map cancelled to pending for component
+    status: project.status,
     invoiceCount: project.invoiceCount,
-    ...(project.hardwareBudget !== undefined && {
-      hardwareBudget: project.hardwareBudget,
-      serviceBudget: project.serviceBudget,
-      hardwareInvoiced: project.hardwareInvoiced || 0,
-      serviceInvoiced: project.serviceInvoiced || 0
-    })
+    hardwareBudget: project.hardwareBudget,
+    serviceBudget: project.serviceBudget,
+    hardwareInvoiced: project.hardwareInvoiced || 0,
+    serviceInvoiced: project.serviceInvoiced || 0,
+    gstEnabled: project.gstEnabled,
+    gstPercentage: project.gstPercentage,
+    tdsEnabled: project.tdsEnabled,
+    tdsPercentage: project.tdsPercentage,
+    poNumbers: project.poNumbers,
+    currentPo: project.currentPo,
+    activePOs: project.activePOs,
+    userId: project.userId,
+    createdAt: project.createdAt,
+    updatedAt: project.updatedAt
   });
 
   // Helper function to map service Invoice to component Invoice
@@ -101,7 +108,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [currentUser, toast]);
 
   // Create a new project
-  const createProject = async (projectData: Omit<ComponentProject, 'id' | 'invoiced' | 'invoiceCount'>) => {
+  const createProject = async (projectData: Omit<Project, 'id' | 'invoiced' | 'invoiceCount'>) => {
     if (!currentUser) return;
 
     try {
@@ -109,7 +116,9 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
       const newProject = {
         ...projectData,
         invoiced: 0,
-        invoiceCount: 0
+        invoiceCount: 0,
+        hardwareInvoiced: 0,
+        serviceInvoiced: 0
       };
 
       const createdProject = await projectService.createProject(currentUser, newProject);
@@ -132,7 +141,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   // Update an existing project
-  const updateProject = async (projectId: string, projectData: Partial<ComponentProject>) => {
+  const updateProject = async (projectId: string, projectData: Partial<Project>) => {
     if (!currentUser) return;
 
     try {

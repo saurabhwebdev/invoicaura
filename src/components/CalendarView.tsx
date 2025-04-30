@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, Flag } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
-import { Project } from './ProjectCard';
+import { Project } from '@/lib/dbService';
 import { Invoice } from './InvoiceList';
 
 interface CalendarViewProps {
@@ -174,7 +174,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <Calendar
+          <CalendarComponent
             mode="single"
             selected={date}
             onSelect={setDate}

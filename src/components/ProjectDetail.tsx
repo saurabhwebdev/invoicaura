@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Calendar, CreditCard, X, Plus, Clock, HardDrive, Wrench, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from '@/lib/utils';
-import { Project } from './ProjectCard';
+import { Project } from '@/lib/dbService';
 import InvoiceList, { Invoice } from './InvoiceList';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import InvoiceForm from './InvoiceForm';
@@ -137,7 +137,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const handleSubmitEdit = async () => {
     try {
       // Process the edit form data into the project structure
-      const updatedProject = {
+      const updatedProject: Partial<Project> = {
         ...project,
         name: editFormData.name,
         client: editFormData.client,
@@ -152,9 +152,22 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
         tdsEnabled: editFormData.tdsEnabled,
         tdsPercentage: editFormData.tdsEnabled ? editFormData.tdsPercentage : undefined,
         poNumbers: editFormData.poNumbers,
-        currentPo: editFormData.currentPo,
-        activePOs: editFormData.activePOs
       };
+      
+      // Only add activePOs if it has values
+      if (editFormData.activePOs?.length) {
+        updatedProject.activePOs = editFormData.activePOs;
+        // Remove currentPo if using activePOs
+        updatedProject.currentPo = undefined;
+      } else if (editFormData.currentPo) {
+        // Use currentPo as fallback
+        updatedProject.currentPo = editFormData.currentPo;
+        updatedProject.activePOs = undefined;
+      } else {
+        // Neither is set
+        updatedProject.currentPo = undefined;
+        updatedProject.activePOs = undefined;
+      }
       
       // Add GST and TDS data
       if (editFormData.gstEnabled) {

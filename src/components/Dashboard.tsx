@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import InvoiceList, { Invoice } from './InvoiceList';
-import ProjectCard, { Project } from './ProjectCard';
+import ProjectCard from './ProjectCard';
 import ProjectDetail from './ProjectDetail';
 import InvoiceDetail from './InvoiceDetail';
 import CalendarView from './CalendarView';
@@ -21,6 +21,7 @@ import {
   CreditCard,
   AlertCircle
 } from "lucide-react";
+import { Project } from '@/lib/dbService';
 
 interface DashboardProps {
   projects: Project[];

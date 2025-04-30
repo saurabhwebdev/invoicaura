@@ -3,7 +3,8 @@ import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProjectCard, { Project } from '@/components/ProjectCard';
+import ProjectCard from '@/components/ProjectCard';
+import { Project } from '@/lib/dbService';
 import ProjectDetail from '@/components/ProjectDetail';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, HardDrive, Wrench } from 'lucide-react';
@@ -97,8 +98,8 @@ const Projects = () => {
         endDate: newProject.endDate,
         invoiceCount: 0,
         poNumbers: newProject.poNumbers,
-        currentPo: newProject.currentPo,
-        activePOs: newProject.activePOs,
+        activePOs: newProject.activePOs.length > 0 ? newProject.activePOs : undefined,
+        ...(newProject.currentPo && { currentPo: newProject.currentPo }),
         ...(newProject.splitBudget && {
           hardwareBudget: Number(newProject.hardwareBudget),
           serviceBudget: Number(newProject.serviceBudget),

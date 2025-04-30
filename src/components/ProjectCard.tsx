@@ -6,32 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from '@/lib/utils';
 import { CalendarCheck, CalendarX, Calendar, CreditCard } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
-
-export interface Project {
-  id: string;
-  name: string;
-  client: string;
-  budget: number;
-  invoiced: number;
-  startDate: string;
-  endDate: string;
-  status: 'active' | 'completed' | 'pending';
-  invoiceCount: number;
-  hardwareBudget?: number;
-  serviceBudget?: number;
-  hardwareInvoiced?: number;
-  serviceInvoiced?: number;
-  gstEnabled?: boolean;
-  gstPercentage?: number;
-  tdsEnabled?: boolean;
-  tdsPercentage?: number;
-  poNumbers?: {
-    hardware?: string;
-    software?: string;
-    combined?: string;
-  };
-  currentPo?: 'hardware' | 'software' | 'combined';
-}
+import { Project } from '@/lib/dbService';
 
 interface ProjectCardProps {
   project: Project;
