@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,17 +14,12 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useProjects } from '@/context/ProjectsContext';
 import { useSettings } from '@/context/SettingsContext';
-
-interface Vendor {
-  id: string;
-  name: string;
-  contactEmail: string;
-  status: "active" | "inactive";
-  totalInvoiced: number;
-}
+import { useAuth } from '@/context/AuthContext';
+import { vendorService, Vendor } from '@/lib/dbService';
 
 const ThirdParty = () => {
   const { toast } = useToast();
+  const { currentUser } = useAuth();
   const { projects, invoices, createThirdPartyInvoice, loading } = useProjects();
   const { formatCurrency } = useSettings();
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,16 +29,35 @@ const ThirdParty = () => {
     contactEmail: "",
     status: "active"
   });
-  
-  const [thirdPartyVendors, setThirdPartyVendors] = useState<Vendor[]>([
-    { id: "1", name: "DevTech Solutions", contactEmail: "info@devtech.com", status: "active", totalInvoiced: 15500 },
-    { id: "2", name: "GraphicDesign Pro", contactEmail: "contact@graphicdesign.pro", status: "active", totalInvoiced: 8200 },
-    { id: "3", name: "Content Writers Inc", contactEmail: "billing@contentwriters.inc", status: "inactive", totalInvoiced: 3400 },
-    { id: "4", name: "ServerSolutions LLC", contactEmail: "accounts@serversolutions.com", status: "active", totalInvoiced: 9800 },
-  ]);
+  const [thirdPartyVendors, setThirdPartyVendors] = useState<Vendor[]>([]);
+  const [loadingVendors, setLoadingVendors] = useState(true);
 
   // Get third-party invoices
   const thirdPartyInvoices = invoices.filter(invoice => invoice.thirdParty);
+  
+  // Load vendors on component mount
+  useEffect(() => {
+    const loadVendors = async () => {
+      if (!currentUser) return;
+      
+      try {
+        setLoadingVendors(true);
+        const vendors = await vendorService.getVendors(currentUser);
+        setThirdPartyVendors(vendors);
+      } catch (error: any) {
+        console.error("Error loading vendors:", error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to load vendors",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingVendors(false);
+      }
+    };
+    
+    loadVendors();
+  }, [currentUser, toast]);
   
   // Calculate vendor totals from actual invoices
   const vendorTotals = thirdPartyInvoices.reduce((acc, invoice) => {
@@ -55,31 +69,100 @@ const ThirdParty = () => {
   }, {} as Record<string, number>);
   
   // Update vendor totals based on actual invoices
-  const updatedVendors = thirdPartyVendors.map(vendor => ({
-    ...vendor,
-    totalInvoiced: vendorTotals[vendor.name] || vendor.totalInvoiced
-  }));
-  
-  const handleCreateThirdPartyInvoice = (thirdPartyData: any) => {
-    createThirdPartyInvoice(thirdPartyData);
+  useEffect(() => {
+    if (!currentUser || loadingVendors) return;
     
-    // Update vendor's total invoiced amount (this will be overwritten when data reloads)
-    setThirdPartyVendors(prev => prev.map(vendor => {
-      if (vendor.name === thirdPartyData.company) {
-        return {
-          ...vendor,
-          totalInvoiced: vendor.totalInvoiced + thirdPartyData.amount
-        };
+    // Update vendor totals in Firebase
+    const updateVendorTotals = async () => {
+      for (const [vendorName, total] of Object.entries(vendorTotals)) {
+        try {
+          // Find if the vendor exists in our state
+          const existingVendor = thirdPartyVendors.find(v => v.name === vendorName);
+          
+          if (existingVendor) {
+            // Only update if the total has changed
+            if (existingVendor.totalInvoiced !== total) {
+              const updated = await vendorService.updateVendor(currentUser, existingVendor.id, {
+                totalInvoiced: total
+              });
+              
+              // Update local state
+              setThirdPartyVendors(prev => 
+                prev.map(v => v.id === updated.id ? updated : v)
+              );
+            }
+          } else {
+            // Create a new vendor with the calculated total
+            const newVendor = await vendorService.createVendor(currentUser, {
+              name: vendorName,
+              contactEmail: '',
+              status: 'active',
+              totalInvoiced: total
+            });
+            
+            // Add to local state
+            setThirdPartyVendors(prev => [...prev, newVendor]);
+          }
+        } catch (error) {
+          console.error(`Error updating vendor ${vendorName}:`, error);
+        }
       }
-      return vendor;
-    }));
+    };
+    
+    updateVendorTotals();
+  }, [currentUser, vendorTotals, thirdPartyVendors, loadingVendors]);
+  
+  const handleCreateThirdPartyInvoice = async (thirdPartyData: any) => {
+    if (!currentUser) return;
+    
+    try {
+      // Create the invoice
+      await createThirdPartyInvoice(thirdPartyData);
+      
+      // Find the vendor
+      const vendorName = thirdPartyData.company;
+      const existingVendor = thirdPartyVendors.find(v => v.name === vendorName);
+      
+      if (existingVendor) {
+        // Update the vendor's total
+        const newTotal = existingVendor.totalInvoiced + thirdPartyData.amount;
+        const updated = await vendorService.updateVendor(currentUser, existingVendor.id, {
+          totalInvoiced: newTotal
+        });
+        
+        // Update local state
+        setThirdPartyVendors(prev => 
+          prev.map(v => v.id === updated.id ? updated : v)
+        );
+      } else {
+        // Create a new vendor
+        const newVendor = await vendorService.createVendor(currentUser, {
+          name: vendorName,
+          contactEmail: '',
+          status: 'active',
+          totalInvoiced: thirdPartyData.amount
+        });
+        
+        // Add to local state
+        setThirdPartyVendors(prev => [...prev, newVendor]);
+      }
+    } catch (error: any) {
+      console.error("Error with third-party invoice:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process third-party invoice",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleAddVendor = () => {
     setShowVendorDialog(true);
   };
   
-  const handleSubmitVendor = () => {
+  const handleSubmitVendor = async () => {
+    if (!currentUser) return;
+    
     // Validation
     if (!newVendor.name || !newVendor.contactEmail) {
       toast({
@@ -90,29 +173,40 @@ const ThirdParty = () => {
       return;
     }
     
-    // Create new vendor
-    const vendor: Vendor = {
-      id: crypto.randomUUID(),
-      name: newVendor.name,
-      contactEmail: newVendor.contactEmail,
-      status: "active" as const,
-      totalInvoiced: 0
-    };
-    
-    setThirdPartyVendors([...thirdPartyVendors, vendor]);
-    setShowVendorDialog(false);
-    
-    // Reset form
-    setNewVendor({
-      name: "",
-      contactEmail: "",
-      status: "active"
-    });
-    
-    toast({
-      title: "Vendor Added",
-      description: `${vendor.name} has been added to your vendors.`
-    });
+    try {
+      // Create new vendor in Firebase
+      const vendorData = {
+        name: newVendor.name,
+        contactEmail: newVendor.contactEmail,
+        status: "active" as const,
+        totalInvoiced: 0
+      };
+      
+      const createdVendor = await vendorService.createVendor(currentUser, vendorData);
+      
+      // Update local state
+      setThirdPartyVendors(prev => [...prev, createdVendor]);
+      setShowVendorDialog(false);
+      
+      // Reset form
+      setNewVendor({
+        name: "",
+        contactEmail: "",
+        status: "active"
+      });
+      
+      toast({
+        title: "Vendor Added",
+        description: `${createdVendor.name} has been added to your vendors.`
+      });
+    } catch (error: any) {
+      console.error("Error adding vendor:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add vendor",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleVendorClick = (vendor: Vendor) => {
@@ -143,7 +237,7 @@ const ThirdParty = () => {
     });
   };
 
-  if (loading) {
+  if (loading || loadingVendors) {
     return (
       <Layout>
         <div className="flex justify-center items-center min-h-screen">

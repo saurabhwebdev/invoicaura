@@ -191,15 +191,17 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
-      // Find the client invoice
-      const clientInvoice = invoices.find(i => i.id === clientInvoiceId);
-      if (!clientInvoice) {
-        toast({
-          title: "Error",
-          description: "Client invoice not found",
-          variant: "destructive"
-        });
-        return;
+      // Find the client invoice (if provided)
+      if (clientInvoiceId) {
+        const clientInvoice = invoices.find(i => i.id === clientInvoiceId);
+        if (!clientInvoice) {
+          toast({
+            title: "Error",
+            description: "Client invoice not found",
+            variant: "destructive"
+          });
+          return;
+        }
       }
 
       // Create the third-party invoice

@@ -50,6 +50,18 @@ export interface Invoice {
   updatedAt?: any;
 }
 
+// Vendor Interface
+export interface Vendor {
+  id: string;
+  name: string;
+  contactEmail: string;
+  status: 'active' | 'inactive';
+  totalInvoiced: number;
+  userId: string;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 // Projects Collection
 const projectsCollection = (userId: string) => 
   collection(db, 'users', userId, 'projects');
@@ -57,6 +69,10 @@ const projectsCollection = (userId: string) =>
 // Invoices Collection
 const invoicesCollection = (userId: string) => 
   collection(db, 'users', userId, 'invoices');
+
+// Vendors Collection
+const vendorsCollection = (userId: string) => 
+  collection(db, 'users', userId, 'vendors');
 
 // Project CRUD operations
 export const projectService = {
@@ -251,5 +267,109 @@ export const invoiceService = {
     }
     
     return true;
+  }
+};
+
+// Vendor CRUD operations
+export const vendorService = {
+  // Create a new vendor
+  async createVendor(user: User, vendorData: Omit<Vendor, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) {
+    if (!user) throw new Error('User not authenticated');
+    
+    const vendor = {
+      ...vendorData,
+      userId: user.uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    
+    const docRef = await addDoc(vendorsCollection(user.uid), vendor);
+    return { id: docRef.id, ...vendor };
+  },
+  
+  // Get all vendors for a user
+  async getVendors(user: User) {
+    if (!user) throw new Error('User not authenticated');
+    
+    const q = query(
+      vendorsCollection(user.uid),
+      orderBy('name', 'asc')
+    );
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vendor));
+  },
+  
+  // Get a single vendor by ID
+  async getVendor(user: User, vendorId: string) {
+    if (!user) throw new Error('User not authenticated');
+    
+    const docRef = doc(vendorsCollection(user.uid), vendorId);
+    const snapshot = await getDoc(docRef);
+    
+    if (!snapshot.exists()) {
+      throw new Error('Vendor not found');
+    }
+    
+    return { id: snapshot.id, ...snapshot.data() } as Vendor;
+  },
+  
+  // Update a vendor
+  async updateVendor(user: User, vendorId: string, vendorData: Partial<Vendor>) {
+    if (!user) throw new Error('User not authenticated');
+    
+    const docRef = doc(vendorsCollection(user.uid), vendorId);
+    await updateDoc(docRef, {
+      ...vendorData,
+      updatedAt: serverTimestamp()
+    });
+    
+    // Get the updated vendor
+    const updated = await getDoc(docRef);
+    return { id: updated.id, ...updated.data() } as Vendor;
+  },
+  
+  // Delete a vendor
+  async deleteVendor(user: User, vendorId: string) {
+    if (!user) throw new Error('User not authenticated');
+    
+    const docRef = doc(vendorsCollection(user.uid), vendorId);
+    await deleteDoc(docRef);
+    return true;
+  },
+  
+  // Update vendor total invoiced amount
+  async updateVendorTotalInvoiced(user: User, vendorName: string, totalInvoiced: number) {
+    if (!user) throw new Error('User not authenticated');
+    
+    // Find vendor by name
+    const q = query(
+      vendorsCollection(user.uid),
+      where('name', '==', vendorName)
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      // Vendor doesn't exist - create a new one with the given total
+      return this.createVendor(user, {
+        name: vendorName,
+        contactEmail: '',
+        status: 'active',
+        totalInvoiced
+      });
+    }
+    
+    // Update existing vendor
+    const vendorDoc = snapshot.docs[0];
+    const vendorRef = doc(vendorsCollection(user.uid), vendorDoc.id);
+    
+    await updateDoc(vendorRef, {
+      totalInvoiced,
+      updatedAt: serverTimestamp()
+    });
+    
+    const updated = await getDoc(vendorRef);
+    return { id: updated.id, ...updated.data() } as Vendor;
   }
 }; 
