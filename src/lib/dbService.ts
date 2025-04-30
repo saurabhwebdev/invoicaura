@@ -62,6 +62,38 @@ export interface Vendor {
   updatedAt?: any;
 }
 
+// UserProfile Interface
+export interface UserProfile {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  company: string;
+  position: string;
+  phone: string;
+  country: string;
+  timeZone: string;
+  currency: string;
+  dateFormat: string;
+  language: string;
+  notifications: {
+    email: {
+      invoiceCreated: boolean;
+      invoicePaid: boolean;
+      projectDeadline: boolean;
+      newComment: boolean;
+    };
+    app: {
+      invoiceCreated: boolean;
+      invoicePaid: boolean;
+      projectDeadline: boolean;
+      newComment: boolean;
+    };
+  };
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 // Projects Collection
 const projectsCollection = (userId: string) => 
   collection(db, 'users', userId, 'projects');
@@ -73,6 +105,10 @@ const invoicesCollection = (userId: string) =>
 // Vendors Collection
 const vendorsCollection = (userId: string) => 
   collection(db, 'users', userId, 'vendors');
+
+// UserProfiles Collection
+const userProfilesCollection = () => 
+  collection(db, 'userProfiles');
 
 // Project CRUD operations
 export const projectService = {
@@ -371,5 +407,96 @@ export const vendorService = {
     
     const updated = await getDoc(vendorRef);
     return { id: updated.id, ...updated.data() } as Vendor;
+  }
+};
+
+// UserProfile CRUD operations
+export const userProfileService = {
+  // Create or update a user profile
+  async saveUserProfile(user: User, profileData: Omit<UserProfile, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) {
+    if (!user) throw new Error('User not authenticated');
+    
+    // Check if profile already exists
+    const existingProfile = await this.getUserProfile(user);
+    
+    if (existingProfile) {
+      // Update existing profile
+      return this.updateUserProfile(user, existingProfile.id, profileData);
+    } else {
+      // Create new profile
+      const profile = {
+        ...profileData,
+        userId: user.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      
+      const docRef = await addDoc(userProfilesCollection(), profile);
+      return { id: docRef.id, ...profile };
+    }
+  },
+  
+  // Get a user profile
+  async getUserProfile(user: User) {
+    if (!user) throw new Error('User not authenticated');
+    
+    const q = query(
+      userProfilesCollection(),
+      where('userId', '==', user.uid)
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      return null;
+    }
+    
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() } as UserProfile;
+  },
+  
+  // Update a user profile
+  async updateUserProfile(user: User, profileId: string, profileData: Partial<UserProfile>) {
+    if (!user) throw new Error('User not authenticated');
+    
+    const docRef = doc(userProfilesCollection(), profileId);
+    await updateDoc(docRef, {
+      ...profileData,
+      updatedAt: serverTimestamp()
+    });
+    
+    // Get the updated profile
+    const updated = await getDoc(docRef);
+    return { id: updated.id, ...updated.data() } as UserProfile;
+  },
+  
+  // Delete a user profile
+  async deleteUserProfile(user: User, profileId: string) {
+    if (!user) throw new Error('User not authenticated');
+    
+    const docRef = doc(userProfilesCollection(), profileId);
+    await deleteDoc(docRef);
+    return true;
+  },
+  
+  // Update user notifications
+  async updateUserNotifications(user: User, notifications: UserProfile['notifications']) {
+    if (!user) throw new Error('User not authenticated');
+    
+    const profile = await this.getUserProfile(user);
+    
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+    
+    const docRef = doc(userProfilesCollection(), profile.id);
+    await updateDoc(docRef, {
+      notifications,
+      updatedAt: serverTimestamp()
+    });
+    
+    // Get the updated profile
+    const updated = await getDoc(docRef);
+    return { id: updated.id, ...updated.data() } as UserProfile;
   }
 }; 

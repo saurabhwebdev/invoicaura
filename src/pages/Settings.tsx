@@ -15,7 +15,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { AlertCircle, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useProjects } from '@/context/ProjectsContext';
-import { projectService, invoiceService } from '@/lib/dbService';
+import { userProfileService } from '@/lib/dbService';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +33,7 @@ const Settings = () => {
   const { currentUser } = useAuth();
   const { settings, updateSettings, formatCurrency } = useSettings();
   const { projects, invoices } = useProjects();
+  const [loading, setLoading] = useState(true);
   
   // User profile data
   const [profile, setProfile] = useState({
@@ -47,18 +48,6 @@ const Settings = () => {
     dateFormat: settings.dateFormat || 'MM/DD/YYYY',
     language: settings.language || 'en-US'
   });
-  
-  // Update local state when settings change
-  useEffect(() => {
-    setProfile(prev => ({
-      ...prev,
-      timeZone: settings.timeZone,
-      country: settings.country,
-      currency: settings.currency,
-      dateFormat: settings.dateFormat,
-      language: settings.language
-    }));
-  }, [settings]);
   
   // Notification settings
   const [notifications, setNotifications] = useState({
@@ -75,6 +64,56 @@ const Settings = () => {
       newComment: true
     }
   });
+  
+  // Load user profile from Firebase
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!currentUser) return;
+      
+      try {
+        setLoading(true);
+        const userProfile = await userProfileService.getUserProfile(currentUser);
+        
+        if (userProfile) {
+          // Update profile data
+          setProfile(prev => ({
+            ...prev,
+            company: userProfile.company || prev.company,
+            position: userProfile.position || prev.position,
+            phone: userProfile.phone || prev.phone,
+            timeZone: userProfile.timeZone || settings.timeZone,
+            country: userProfile.country || settings.country,
+            currency: userProfile.currency || settings.currency,
+            dateFormat: userProfile.dateFormat || settings.dateFormat,
+            language: userProfile.language || settings.language
+          }));
+          
+          // Update notification settings
+          if (userProfile.notifications) {
+            setNotifications(userProfile.notifications);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadUserProfile();
+  }, [currentUser, settings]);
+  
+  // Update local state when settings change
+  useEffect(() => {
+    setProfile(prev => ({
+      ...prev,
+      timeZone: settings.timeZone,
+      country: settings.country,
+      currency: settings.currency,
+      dateFormat: settings.dateFormat,
+      language: settings.language
+    }));
+  }, [settings]);
   
   // Billing information
   const [billing, setBilling] = useState({
@@ -140,12 +179,38 @@ const Settings = () => {
     { value: 'zh', label: 'Chinese' }
   ];
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been updated successfully."
-    });
+    if (!currentUser) return;
+    
+    try {
+      // Save profile data to Firebase
+      await userProfileService.saveUserProfile(currentUser, {
+        name: profile.name,
+        email: profile.email,
+        company: profile.company,
+        position: profile.position,
+        phone: profile.phone,
+        country: profile.country,
+        timeZone: profile.timeZone,
+        currency: profile.currency,
+        dateFormat: profile.dateFormat,
+        language: profile.language,
+        notifications
+      });
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been updated successfully."
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile information.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleCountryChange = (value: string) => {
@@ -169,14 +234,40 @@ const Settings = () => {
     }
   };
 
-  const handleSaveRegionalSettings = () => {
-    // Update global settings
-    updateSettings({
-      timeZone: profile.timeZone,
-      currency: profile.currency,
-      dateFormat: profile.dateFormat,
-      language: profile.language
-    });
+  const handleSaveRegionalSettings = async () => {
+    if (!currentUser) return;
+    
+    try {
+      // Update global settings
+      await updateSettings({
+        timeZone: profile.timeZone,
+        currency: profile.currency,
+        dateFormat: profile.dateFormat,
+        language: profile.language
+      });
+      
+      // Save to user profile
+      await userProfileService.saveUserProfile(currentUser, {
+        name: profile.name,
+        email: profile.email,
+        company: profile.company,
+        position: profile.position,
+        phone: profile.phone,
+        country: profile.country,
+        timeZone: profile.timeZone,
+        currency: profile.currency,
+        dateFormat: profile.dateFormat,
+        language: profile.language,
+        notifications
+      });
+    } catch (error) {
+      console.error('Error saving regional settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update regional settings.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleNotificationToggle = (category: 'email' | 'app', setting: string, value: boolean) => {
@@ -189,12 +280,36 @@ const Settings = () => {
     }));
   };
   
-  const handleSaveNotifications = () => {
-    toast({
-      title: "Notifications Updated",
-      description: "Your notification preferences have been saved."
-    });
+  const handleSaveNotifications = async () => {
+    if (!currentUser) return;
+    
+    try {
+      // Save notification settings to Firebase
+      await userProfileService.updateUserNotifications(currentUser, notifications);
+      
+      toast({
+        title: "Notifications Updated",
+        description: "Your notification preferences have been saved."
+      });
+    } catch (error) {
+      console.error('Error saving notifications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update notification settings.",
+        variant: "destructive"
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="h-12 w-12 rounded-full border-4 border-t-transparent border-primary animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

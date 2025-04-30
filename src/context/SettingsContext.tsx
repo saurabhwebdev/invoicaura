@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { userProfileService } from '@/lib/dbService';
 
 // Define the types for our settings
 interface UserSettings {
@@ -62,15 +63,32 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
 
-  // Load settings from localStorage on component mount
+  // Load settings from Firebase and localStorage on component mount
   useEffect(() => {
-    const loadSettings = () => {
+    const loadSettings = async () => {
       try {
         setLoading(true);
         
-        // Try to get settings from localStorage
-        const savedSettings = localStorage.getItem('userSettings');
+        if (currentUser) {
+          // Try to get settings from Firebase first
+          const userProfile = await userProfileService.getUserProfile(currentUser);
+          
+          if (userProfile) {
+            // Use settings from Firebase
+            setSettings({
+              country: userProfile.country || defaultSettings.country,
+              timeZone: userProfile.timeZone || defaultSettings.timeZone,
+              currency: userProfile.currency || defaultSettings.currency,
+              currencySymbol: currencySymbols[userProfile.currency] || defaultSettings.currencySymbol,
+              dateFormat: userProfile.dateFormat || defaultSettings.dateFormat,
+              language: userProfile.language || defaultSettings.language
+            });
+            return;
+          }
+        }
         
+        // Fallback to localStorage if Firebase doesn't have settings or user is not logged in
+        const savedSettings = localStorage.getItem('userSettings');
         if (savedSettings) {
           const parsedSettings = JSON.parse(savedSettings);
           setSettings({
@@ -89,10 +107,10 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     loadSettings();
-  }, [currentUser?.uid]);
+  }, [currentUser]);
 
   // Function to update settings
-  const updateSettings = (newSettings: Partial<UserSettings>) => {
+  const updateSettings = async (newSettings: Partial<UserSettings>) => {
     try {
       // Create updated settings
       const updatedSettings = { ...settings, ...newSettings };
@@ -105,8 +123,38 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Update state
       setSettings(updatedSettings);
       
-      // Save to localStorage
+      // Save to localStorage (as a backup and for non-logged in users)
       localStorage.setItem('userSettings', JSON.stringify(updatedSettings));
+      
+      // Save to Firebase if user is logged in
+      if (currentUser) {
+        await userProfileService.saveUserProfile(currentUser, {
+          name: currentUser.displayName || '',
+          email: currentUser.email || '',
+          company: '', // These will be updated from Settings.tsx
+          position: '',
+          phone: '',
+          country: updatedSettings.country,
+          timeZone: updatedSettings.timeZone,
+          currency: updatedSettings.currency,
+          dateFormat: updatedSettings.dateFormat,
+          language: updatedSettings.language,
+          notifications: {
+            email: {
+              invoiceCreated: true,
+              invoicePaid: true,
+              projectDeadline: true,
+              newComment: false
+            },
+            app: {
+              invoiceCreated: true,
+              invoicePaid: true,
+              projectDeadline: true,
+              newComment: true
+            }
+          }
+        });
+      }
       
       toast({
         title: "Settings Updated",
